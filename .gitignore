@@ -1,1 +1,5 @@
-Trabalho Comm TCP IP.pdf
+*.pdf
+bin/**
+build/**
+debug/**
+obj/**
