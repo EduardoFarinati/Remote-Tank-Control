@@ -1,6 +1,6 @@
 # tool macros
 CC ?= gcc
-CCFLAGS := -lSDL -lm -pthread
+CCFLAGS := -lSDL -lm -pthread -std=gnu89
 DBGFLAGS := -g
 CCOBJFLAGS := $(CCFLAGS) -c
 
