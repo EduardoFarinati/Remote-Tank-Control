@@ -21,7 +21,7 @@ int mut2 = 0;
 
 
 
-	main()
+	void thread_main()
 	{
 	  pthread_t thread1, thread2, thread3, thread4;
 	     const char *message1 = "Thread 1";

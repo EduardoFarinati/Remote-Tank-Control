@@ -16,8 +16,8 @@ TARGET_1_NAME := client
 TARGET_2_NAME := server
 TARGET_1 := $(BIN_PATH)/$(TARGET_1_NAME)
 TARGET_2 := $(BIN_PATH)/$(TARGET_2_NAME)
-TARGET_1_DEBUG := $(DBG_PATH)/$(TARGET_1_NAME)
-TARGET_2_DEBUG := $(DBG_PATH)/$(TARGET_2_NAME)
+TARGET_1_DEBUG := $(DBG_PATH)/$(BIN_PATH)/$(TARGET_1_NAME)
+TARGET_2_DEBUG := $(DBG_PATH)/$(BIN_PATH)/$(TARGET_2_NAME)
 
 # src files & obj files
 SHARED_SRC := $(foreach file, $(SRC_PATH), $(wildcard $(addprefix $(file)/*,.c*)))
@@ -84,7 +84,7 @@ $(TARGET_2_DEBUG): $(OBJ_2_DEBUG) $(SHARED_OBJ_DEBUG)
 makedir:
 	@mkdir -p $(BIN_PATH)
 	@mkdir -p $(OBJ_PATH)/$(TARGET_1_NAME) $(OBJ_PATH)/$(TARGET_2_NAME)
-	@mkdir -p $(DBG_PATH)
+	@mkdir -p $(DBG_PATH)/$(BIN_PATH) $(DBG_PATH)/$(TARGET_1_NAME) $(DBG_PATH)/$(TARGET_2_NAME)
 
 .PHONY: all
 all: $(TARGET_1) $(TARGET_2)
@@ -96,7 +96,13 @@ $(TARGET_1_NAME): $(TARGET_1)
 $(TARGET_2_NAME): $(TARGET_2)
 
 .PHONY: debug
-debug: $(TARGET_DEBUG)
+debug: $(TARGET_1_DEBUG) $(TARGET_2_DEBUG)
+
+.PHONY: debug_$(TARGET_1_NAME)
+debug_$(TARGET_1_NAME): $(TARGET_1_DEBUG)
+
+.PHONY: debug_$(TARGET_2_NAME)
+debug_$(TARGET_2_NAME): $(TARGET_2_DEBUG)
 
 .PHONY: clean
 clean:
