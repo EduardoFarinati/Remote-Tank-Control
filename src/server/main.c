@@ -110,33 +110,27 @@ void *generate_graphics() {
     return NULL;
 }
 
+// TODO:
+// Se o numero de bytes nao bater
+// Chamar Recvfrom multiplas vezes! RECVFROM MSG_DONTWAIT
+// Remover saturacao do servidor
+// Tratar limites quando pacote de resposta
+// for perdido
+// Inverter close e open
+// Modelo simples da planta
+// Usar porta 9E9E -> E numero do grupo
+// Para tempo clock_gettime, CLOCK_MONOTONIC_RAW
+// Clear dos graficos.
+// Trylock para nao travar a espera de pacotes
 void *receive_ip_packets() {
     start_server_socket();
     
     while(get_program_running()) {
         sleep_ms(IP_SERVER_SLEEP_MS);
-
-        if(accept_connection() == 0) {
-            // Usar UDP
-            // Se o numero de bytes nao bater
-            // Chamar Recvfrom multiplas vezes! RECVFROM MSG_DONTWAIT
-            // Remover saturacao do servidor
-            // Tratar limites quando pacote de resposta
-            // for perdido
-            // Inverter close e open
-            // Modelo simples da planta
-            // Usar porta 9E9E -> E numero do grupo
-            // Para tempo clock_gettime, CLOCK_MONOTONIC_RAW
-            // Clear dos graficos.
-            // Trylock para nao travar a espera de pacotes
-            while(receive_command() == 0) {
-               command_action();
-               sleep_ms(IP_SERVER_SLEEP_MS);
-            } 
-        }
-
-        close_client_socket();
+        receive_command();
+        command_action();
     }
+
     close_server_socket();
 
     return NULL;

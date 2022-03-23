@@ -64,23 +64,18 @@ int main() {
 }
 
 void *control_tank_level() {
-    int is_connected = 0;
-
     while(get_program_running()) {
         start_client_socket();
-
-        while(!is_connected && get_program_running()) {
-            if(!connect_to_server("127.0.0.1")) {
-                is_connected = !comm_test();
-            };
-
+        set_server_address("127.0.0.1");
+ 
+        // Waits for connection to be estabilished
+        while(get_program_running() && comm_test()) {
             sleep_ms(CONTROL_SLEEP_MS);
         }
 
-        is_connected = !start_tank();
-        while(is_connected && get_program_running()) {
+        while(get_program_running()) {
             // Updates tank variables
-            is_connected = !update_tank();
+            update_tank();
             sleep_ms(CONTROL_SLEEP_MS);
         }
 

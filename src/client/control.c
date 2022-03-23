@@ -4,9 +4,9 @@
 
 
 // PID controller definition
-const double Kp = 10;
-const double Ki = 5;
-const double Kd = 0.5;
+const double Kp = 0.5;
+const double Ki = 0.2;
+const double Kd = 0;
 const double p = 100; // Derivative action pole
 const double T = CONTROL_SLEEP_MS * 1e-3; // Controller time constant
 
@@ -14,7 +14,7 @@ const double T = CONTROL_SLEEP_MS * 1e-3; // Controller time constant
 double P;
 double I = 0;
 double D = 0;
-int yp = 0; // Past measure of y
+int yp = 50; // Past measure of y
 
 
 // Maintains controller between 0 and 100

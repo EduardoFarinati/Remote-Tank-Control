@@ -4,7 +4,11 @@
 
 
 // Tank level, valve openings, maximum outflux and input angle delta
-TankState _tank;
+TankState _tank = {
+    .input = 50,
+    .level = 40,
+    .max = 100
+};
 pthread_mutex_t tank_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 

@@ -4,7 +4,7 @@
 
 // Thread sleep constants
 #define MAIN_SLEEP_MS 500
-#define CONTROL_SLEEP_MS 45
+#define CONTROL_SLEEP_MS 1000 //45
 #define GRAPHICS_SLEEP_MS 50
 
 
@@ -38,9 +38,9 @@ void close_window();
 // IP client function headers
 int start_client_socket();
 
-int connect_to_server_p(char* server_ip_address, int server_port);
+void set_server_address_p(char* server_ip_address, int server_port);
 
-int connect_to_server(char* server_ip_address);
+void set_server_address(char* server_ip_address);
 
 int comm_test();
 

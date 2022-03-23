@@ -11,6 +11,7 @@
 
 
 int client_socket;
+struct sockaddr_in server_address;
 
 protocol_keyword keyword;
 int value;
@@ -28,26 +29,19 @@ int start_client_socket() {
     }
 }
 
-int connect_to_server_p(char* server_ip_address, int server_port) {
-    struct sockaddr_in server_address = {
+void set_server_address_p(char* server_ip_address, int server_port) {
+    server_address = (struct sockaddr_in) {
         .sin_family = AF_INET,
         .sin_addr.s_addr = inet_addr(server_ip_address),
         .sin_port = htons(server_port)
     };
     
-    printf("Connecting to server at %s:%d...\n", server_ip_address, server_port);
-    if(connect(client_socket, (struct sockaddr *) &server_address, sizeof(server_address)) < 0) {
-        printf("Error - failed to connect, error: %s\n", strerror(errno));
-
-        return -1;
-    }
-    else {
-        return 0;
-    }
+    // Maybe set a return value for invalid addresses?
+    printf("Server address %s:%d set...\n", server_ip_address, server_port);
 }
 
-int connect_to_server(char* server_ip_address) {
-    return connect_to_server_p(server_ip_address, DEFAULT_PORT);
+void set_server_address(char* server_ip_address) {
+    set_server_address_p(server_ip_address, DEFAULT_PORT);
 }
 
 int send_command() {
@@ -56,12 +50,12 @@ int send_command() {
     // Tries to send a message
     format_message(command, keyword, value);
 
-    if(send_message(command, client_socket)) {
+    if(send_message(command, client_socket, &server_address)) {
         return -1;
     }
     else {
         // Send OK, receive response
-        return receive_message(response, client_socket);
+        return receive_message(response, client_socket, &server_address);
     }
 }
 
@@ -207,6 +201,5 @@ int update_tank() {
 }
 
 void close_client_socket() {
-    printf("Closing client tcp/ip socket...\n");
-    close(client_socket);
+    close_socket(client_socket);
 }

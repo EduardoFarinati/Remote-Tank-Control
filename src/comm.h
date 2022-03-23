@@ -1,9 +1,13 @@
 #ifndef COMM_H
 #define COMM_H
 
+
+#include <netinet/in.h>
+
+
 // IP client / server constants
 #define DEFAULT_PORT 8201
-#define MAX_CONNECTIONS 3  // Maximum requests for connections on the server
+#define MESSAGE_TIMEOUT_MS 50
 
 // Communication constants
 typedef enum protocol_keyword_t {
@@ -51,11 +55,13 @@ typedef enum protocol_keyword_t {
 // Communication function headers
 int create_socket();
 
-int set_passive_socket(int socket_id, int port, int max_connections);
+void close_socket(int socket_id);
 
-int send_message(char *message, int socket_id);
+int bind_port(int socket_id, int port);
 
-int receive_message(char *message, int socket_id);
+int receive_message(char* message, int socket_id, struct sockaddr_in* from_address);
+
+int send_message(char* message, int socket_id, struct sockaddr_in* to_address);
 
 void parse_command(char* message, protocol_keyword* keyword, int* value);
 
