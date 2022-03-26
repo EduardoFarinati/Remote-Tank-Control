@@ -4,26 +4,29 @@
 
 
 // PID controller definition
-const double Kp = 0.5;
+const double Kp = 3.5;
 const double Ki = 0.2;
 const double Kd = 0;
-const double p = 100; // Derivative action pole
 const double T = CONTROL_SLEEP_MS * 1e-3; // Controller time constant
 
 // PID variables
 double P;
 double I = 0;
 double D = 0;
-int yp = 50; // Past measure of y
+int e_p = 40; // Past measure of e
+
+// Dynamic saturation for lost packages
+int max_u = 100;
+int min_u = 0;
 
 
 // Maintains controller between 0 and 100
 void controller_saturation(int* u) {
-   if(*u > 100) {
-      *u = 100;
+   if(*u > max_u) {
+      *u = max_u;
    }
-   else if(*u < 0) {
-      *u = 0;
+   else if(*u < min_u) {
+      *u = min_u;
    }
 }
 
@@ -33,13 +36,16 @@ int controller_output(int r, int y) {
    int e = r - y;
 
    P = Kp * e;
-   I += Ki * T * ((double) (y + yp))/2.;
-   D = D*(2 - p*T)/(2 + p*T) + 2*p*Kd/((2 + p*T)*(y - yp));
+   I += Ki * T * e;
+   D = Kd * ((double) (e - e_p)) / T;
 
    u = round(P + I + D);
 
    // Controller saturation
    controller_saturation(&u);
+
+   // Past error set
+   e_p = e;
 
    return u;
 }
