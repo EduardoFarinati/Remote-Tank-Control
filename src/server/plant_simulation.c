@@ -34,14 +34,6 @@ void update_input_angle(TankState* tank, double dt) {
             tank->delta += 10*dt;
         }
     }
-
-    // Sets maximum openings
-    if(tank->input > 100) {
-        tank->input = 100;
-    }
-    else if(tank->input < 0) {
-        tank->input = 0;
-    }
 }
 
 void update_output_angle(TankState* tank) {
@@ -70,6 +62,15 @@ void update_output_angle(TankState* tank) {
     }
 }
 
+void tank_level_saturation(TankState* tank) {
+    if(tank->level > 100) {
+        tank->level = 100;
+    }
+    else if(tank->level < 0) {
+        tank->level = 0;
+    }
+}
+
 void tank_time_step() {
     TankState tank;
     double influx, outflux;
@@ -89,14 +90,7 @@ void tank_time_step() {
 
     // Tank level calculation
     tank.level += 2*dt*(influx - outflux);
-
-    // Tank level saturation
-    if(tank.level > 100) {
-        tank.level = 100;
-    }
-    else if(tank.level < 0) {
-        tank.level = 0;
-    }
+    tank_level_saturation(&tank);
 
     // Sets new state
     unlock_tank_state(&tank);
