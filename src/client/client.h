@@ -4,7 +4,7 @@
 
 // Thread sleep constants
 #define MAIN_SLEEP_MS 500
-#define CONTROL_SLEEP_MS 1000 //45
+#define CONTROL_SLEEP_MS 25
 #define GRAPHICS_SLEEP_MS 50
 
 
@@ -46,7 +46,7 @@ int comm_test();
 
 int start_tank();
 
-int update_tank();
+void update_tank();
 
 void close_client_socket();
 
