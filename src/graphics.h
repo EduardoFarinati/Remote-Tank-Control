@@ -6,7 +6,7 @@
 
 
 #define SCREEN_W 640 //tamanho da janela que sera criada
-#define SCREEN_H 480
+#define SCREEN_H 640
 
 //#define BPP 8
 //typedef Uint8 PixelType;
