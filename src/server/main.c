@@ -1,9 +1,9 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 
 #include "server.h"
 #include "../time.h"
+#include "../debug.h"
 
 
 void *simulate_plant();
@@ -39,7 +39,7 @@ int main() {
     ret1 = pthread_create(&plant_thread, NULL, simulate_plant, NULL);
     if(ret1)
     {
-	    fprintf(stderr, "Error: unable to create plant thread, return code: %d\n", ret1);
+	    write_log(CRITICAL, "Error: unable to create plant thread, return code: %d\n", ret1);
 	    exit(EXIT_FAILURE);
     }
     
@@ -47,7 +47,7 @@ int main() {
     ret2 = pthread_create(&graphics_thread, NULL, generate_graphics, NULL);
     if(ret2)
     {
-	    fprintf(stderr, "Error: unable to create graphics thread, return code: %d\n", ret2);
+	    write_log(CRITICAL, "Error: unable to create graphics thread, return code: %d\n", ret2);
 	    exit(EXIT_FAILURE);
     }
 
@@ -55,7 +55,7 @@ int main() {
     ret3 = pthread_create(&ip_server_thread, NULL, receive_ip_packets, NULL);
     if(ret3)
     {
-	    fprintf(stderr, "Error: unable to create ip server thread, return code: %d\n", ret3);
+	    write_log(CRITICAL, "Error: unable to create ip server thread, return code: %d\n", ret3);
 	    exit(EXIT_FAILURE);
     }
 
@@ -78,7 +78,7 @@ int main() {
 void *simulate_plant() {
     int i = 1;
 
-    printf("Starting tank...");
+    write_log(INFO, "Starting tank...");
     start_tank();
     print_tank_state();
 
@@ -87,7 +87,7 @@ void *simulate_plant() {
         tank_time_step();
 
         if(i >= 300) {
-            print_tank_state(NULL);
+            print_tank_state();
             i = 1;
         }
         else {
@@ -116,7 +116,6 @@ void *generate_graphics() {
 // Remover saturacao do servidor
 // Tratar limites quando pacote de resposta
 // for perdido
-// Inverter close e open
 // Modelo simples da planta
 // Usar porta 9E9E -> E numero do grupo
 // Para tempo clock_gettime, CLOCK_MONOTONIC_RAW

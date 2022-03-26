@@ -1,9 +1,9 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <pthread.h>
 
 #include "client.h"
 #include "../time.h"
+#include "../debug.h"
 
 
 void *control_tank_level();
@@ -37,14 +37,14 @@ int main() {
     // Creates control thread to control the tank system
     ret1 = pthread_create(&control_thread, NULL, control_tank_level, NULL);
     if(ret1) {
-	    fprintf(stderr,"Error: unable to create control thread, return code: %d\n", ret1);
+	    write_log(CRITICAL,"Error: unable to create control thread, return code: %d\n", ret1);
 	    exit(EXIT_FAILURE);
     }
     
     // Creates graphics thread to show current tank level and supposed input valve status
     ret2 = pthread_create(&graphics_thread, NULL, generate_graphics, NULL);
     if(ret2) {
-	    fprintf(stderr,"Error: unable to create graphics thread, return code: %d\n", ret2);
+	    write_log(CRITICAL,"Error: unable to create graphics thread, return code: %d\n", ret2);
 	    exit(EXIT_FAILURE);
     }
 
@@ -52,6 +52,7 @@ int main() {
     while(!window_closed()) {
         sleep_ms(MAIN_SLEEP_MS);
     }
+    write_log(INFO, "Window closed, stopping program...\n");
 
     // Sets flag to stop program
     set_program_running(0);
@@ -70,7 +71,7 @@ void *control_tank_level() {
  
         // Waits for connection to be estabilished
         while(get_program_running() && comm_test()) {
-            sleep_ms(CONTROL_SLEEP_MS);
+            sleep_ms(10 * CONTROL_SLEEP_MS);
         }
 
         while(get_program_running()) {

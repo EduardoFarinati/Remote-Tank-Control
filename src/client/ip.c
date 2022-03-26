@@ -1,13 +1,13 @@
 #include <arpa/inet.h>
-#include <stdio.h>
 #include <string.h>
 #include <netinet/in.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include "../comm.h"
 #include "client.h"
+#include "../comm.h"
+#include "../debug.h"
 
 
 int client_socket;
@@ -37,7 +37,7 @@ void set_server_address_p(char* server_ip_address, int server_port) {
     };
     
     // Maybe set a return value for invalid addresses?
-    printf("Server address %s:%d set...\n", server_ip_address, server_port);
+    write_log(CRITICAL, "Server address %s:%d set...\n", server_ip_address, server_port);
 }
 
 void set_server_address(char* server_ip_address) {
@@ -161,8 +161,8 @@ int set_input_valve(TankState* tank) {
         value = -delta;
     }
 
+    tank->input += delta;
     if(!send_command() && !check_response()) {
-        tank->input += delta;
 
         return 0;
     }
@@ -177,27 +177,16 @@ void set_time(TankState* tank) {
     tank->t += dt;
 }
 
-int update_tank() {
-    TankState previous_tank, tank;
+void update_tank() {
+    TankState tank = get_tank();
 
-    lock_tank_state(&previous_tank);
-
-    // Only modify local variable, might fail
-    // If no copy is used
-    tank = previous_tank;
+    // New values
+    get_level(&tank);
+    set_input_valve(&tank);
     set_time(&tank);
 
-    if(!get_level(&tank) && !set_input_valve(&tank)) {
-        unlock_tank_state(&tank);
-
-        return 0;
-    }
-    else {
-        // No variables modified
-        unlock_tank_state(&previous_tank);
-
-        return 1;
-    }
+    // Update tank state
+    set_tank(tank);
 }
 
 void close_client_socket() {

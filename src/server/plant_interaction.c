@@ -1,6 +1,7 @@
-#include <stdio.h>
+#include <math.h>
 
 #include "server.h"
+#include "../debug.h"
 
 
 // External interactions functions
@@ -38,7 +39,7 @@ void delta_saturation(TankState* tank) {
 void open_valve(int value) {
     TankState tank;
 
-    printf("Opening valve by: %d%%\n", value);
+    write_log(INFO, "Opening valve by: %d%%\n", value);
     lock_tank_state(&tank);
     tank.delta += value;
     delta_saturation(&tank);
@@ -48,7 +49,7 @@ void open_valve(int value) {
 void close_valve(int value) {
     TankState tank;
 
-    printf("Closing valve by: %d%%\n", value);
+    write_log(INFO, "Closing valve by: %d%%\n", value);
     lock_tank_state(&tank);
     tank.delta -= value;
     delta_saturation(&tank);
@@ -58,7 +59,7 @@ void close_valve(int value) {
 void set_max(int value) {
     TankState tank;
 
-    printf("Setting max to: %d\n", value);
+    write_log(INFO, "Setting max to: %d\n", value);
     lock_tank_state(&tank);
     tank.max = value;
     unlock_tank_state(&tank);
@@ -66,20 +67,21 @@ void set_max(int value) {
 
 int get_level() {
     TankState tank;
-    int level;
+    double level;
 
     lock_tank_state(&tank);
-    level = (int) tank.level;
+    level = tank.level;
     unlock_tank_state(&tank);
 
-    return level;
+    return round(level);
 }
 
 
 void print_tank_state() {
     TankState tank = get_tank();
 
-    printf(
+    write_log(
+        INFO,
         "TANK-STATE(T:%.2f)={Lvl:%.2f, In:%.2f, dIn:%.2f, Out:%.2f, Max:%d}\n",
         tank.t,
         tank.level, 

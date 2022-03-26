@@ -1,11 +1,10 @@
-#include <stdio.h>
 #include <string.h>
 #include <sys/socket.h>
 #include <unistd.h>
 #include <errno.h>
 
-#include "../comm.h"
 #include "server.h"
+#include "../comm.h"
 
 
 int server_socket;
