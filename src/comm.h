@@ -6,7 +6,7 @@
 
 
 // IP client / server constants
-#define DEFAULT_PORT 8201
+#define DEFAULT_PORT 9595  // Port for group E := 9E9E
 #define MESSAGE_TIMEOUT_MS 50
 
 // Communication constants
