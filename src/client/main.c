@@ -6,8 +6,8 @@
 #include "../debug.h"
 
 
-void *control_tank_level();
-void *generate_graphics();
+void* control_tank_level();
+void* generate_graphics();
 
 
 int _program_running = 1;
@@ -64,7 +64,7 @@ int main() {
     exit(EXIT_SUCCESS);
 }
 
-void *control_tank_level() {
+void* control_tank_level() {
     while(get_program_running()) {
         start_client_socket();
         set_server_address("127.0.0.1");
@@ -87,7 +87,7 @@ void *control_tank_level() {
     return NULL;
 }
 
-void *generate_graphics() {
+void* generate_graphics() {
     create_graphics_window();
     sleep_ms(GRAPHICS_SLEEP_MS);
 

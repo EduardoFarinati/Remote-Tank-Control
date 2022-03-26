@@ -6,9 +6,9 @@
 #include "../debug.h"
 
 
-void *simulate_plant();
-void *generate_graphics();
-void *receive_ip_packets();
+void* simulate_plant();
+void* generate_graphics();
+void* receive_ip_packets();
 
 
 int _program_running = 1;
@@ -75,7 +75,7 @@ int main() {
 	exit(EXIT_SUCCESS);
 }
 
-void *simulate_plant() {
+void* simulate_plant() {
     int i = 1;
 
     write_log(INFO, "Starting tank...");
@@ -98,7 +98,7 @@ void *simulate_plant() {
     return NULL;
 }
 
-void *generate_graphics() {
+void* generate_graphics() {
     create_graphics_window();
     sleep_ms(GRAPHICS_SLEEP_MS);
 
@@ -113,7 +113,6 @@ void *generate_graphics() {
 // TODO:
 // Se o numero de bytes nao bater
 // Chamar Recvfrom multiplas vezes! RECVFROM MSG_DONTWAIT
-// Remover saturacao do servidor
 // Tratar limites quando pacote de resposta
 // for perdido
 // Modelo simples da planta
@@ -121,7 +120,7 @@ void *generate_graphics() {
 // Para tempo clock_gettime, CLOCK_MONOTONIC_RAW
 // Clear dos graficos.
 // Trylock para nao travar a espera de pacotes
-void *receive_ip_packets() {
+void* receive_ip_packets() {
     start_server_socket();
     
     while(get_program_running()) {
