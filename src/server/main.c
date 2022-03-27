@@ -60,10 +60,11 @@ int main() {
 void* simulate_plant() {
     write_log(INFO, "Starting tank...");
     start_tank();
+    sleep_ms(SIMULATION_SLEEP_MS);
 
     while(get_program_running()) {
-        sleep_ms(SIMULATION_SLEEP_MS);
         tank_time_step();
+        sleep_ms(SIMULATION_SLEEP_MS);
     }
 
     return NULL;
@@ -93,6 +94,7 @@ void* generate_graphics() {
 // Testar mensagens com bytes corrompidos
 void* receive_ip_packets() {
     start_server_socket();
+    sleep_ms(IP_SERVER_SLEEP_MS);
     
     while(get_program_running()) {
         receive_command();
