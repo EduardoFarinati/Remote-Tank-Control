@@ -97,8 +97,9 @@ void* receive_ip_packets() {
     sleep_ms(IP_SERVER_SLEEP_MS);
     
     while(get_program_running()) {
-        receive_command();
-        command_action();
+        if(receive_command() == 0) {
+            command_action();
+        }
         sleep_ms(IP_SERVER_SLEEP_MS);
     }
 

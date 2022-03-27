@@ -3,6 +3,13 @@
 #include <string.h>
 
 #include "comm.h"
+#include "time.h"
+
+
+// Dealing with incomplete packets
+char incomplete[BUFFER_LENGTH+1] = "\0";
+int was_complete = 1;
+struct timespec started_receiving;
 
 
 protocol_keyword get_command_keyword(char* keyword_str) {
@@ -120,11 +127,40 @@ void get_keyword_value(char* message, char* keyword_str, char* value_str) {
 }
 
 int is_packet_done(char* message) {
+    if (!was_complete) {
+        if(get_time_delta_ms(started_receiving) > MESSAGE_TIMEOUT_S) {
+            was_complete = 1;
+
+            return 1;
+        }
+        else {
+            int is_big_enough = (strlen(message) + strlen(incomplete) < BUFFER_LENGTH);
+            if(is_big_enough) {
+                strcat(incomplete, message);
+            }
+            else {
+                strcpy(incomplete, message);
+                started_receiving = get_current_time();
+            }
+        }
+    }
+
     // Waits for "!" at the end
     if(strstr(message, MESSAGE_TOKEN)) {
+        if(!was_complete) {
+            strcpy(message, incomplete);
+            was_complete = 1;
+        }
+
         return 1;
     }
     else {
+        if(was_complete && (strcmp(message, "") != 0)) {
+            strcpy(incomplete, message);
+            started_receiving = get_current_time();
+            was_complete = 0;
+        }
+
         return 0;
     }
 }

@@ -10,7 +10,6 @@
 int server_socket;
 struct sockaddr_in client_address;
 
-char buffer[BUFFER_LENGTH+1];
 protocol_packet packet;
 
 
@@ -29,15 +28,20 @@ int start_server_socket() {
 }
 
 int receive_command() {
+    char buffer[BUFFER_LENGTH+1];
+
     // Tries to receive a message
-    int return_code = receive_message(buffer, server_socket, &client_address);
-
-    if(return_code == 0) {
+    if(receive_message(buffer, server_socket, &client_address) == 0) {
         // Tries parsing message
-        packet = parse_command(buffer);
-    }
+        if(is_packet_done(buffer)) {
+            packet = parse_command(buffer);
 
-    return return_code;
+            return 0;
+        }
+        else {
+            return -1;
+        }
+    }
 }
 
 void command_action() {

@@ -7,7 +7,7 @@
 
 // IP client / server constants
 #define DEFAULT_PORT 9595  // Port for group E := 9E9E
-#define MESSAGE_TIMEOUT_MS 50
+#define MESSAGE_TIMEOUT_S 5e-3
 
 // Communication constants
 typedef enum protocol_keyword_t {
@@ -84,6 +84,8 @@ int send_message(char* message, int socket_id, struct sockaddr_in* to_address);
 protocol_packet parse_command(char* message);
 
 protocol_packet parse_response(char* message);
+
+int is_packet_done(char* message);
 
 void format_message(char* message, protocol_packet packet);
 

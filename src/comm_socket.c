@@ -23,7 +23,7 @@ int create_socket() {
     int socket_id;
 
     write_log(CRITICAL, "Opening udp/ip socket...\n");
-    socket_id = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+    socket_id = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
 
     if(socket_id < 0) {
         write_log(CRITICAL, "Error: Unable to open udp/ip socket, return code: %d\n", socket_id);
@@ -84,9 +84,16 @@ int receive_message(char* message, int socket_id, struct sockaddr_in* from_addre
         return 0;
     }
     else {
-        write_log(CRITICAL, "Error - receive from socket failed, error: %s\n", strerror(errno));
+        if(errno == EAGAIN || errno == EWOULDBLOCK) {
+            // No data in the socket
+            message[0] = '\0';
 
-        return -1;
+            return 0;
+        }
+        else {
+            write_log(CRITICAL, "Error - receive from socket failed, error: %s\n", strerror(errno));
+            return -1;
+        }
     }
 }
 
