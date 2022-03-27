@@ -3,6 +3,7 @@
 
 #include "server.h"
 #include "../time.h"
+#include "../run_sync.h"
 #include "../debug.h"
 
 
@@ -10,26 +11,6 @@ void* simulate_plant();
 void* generate_graphics();
 void* receive_ip_packets();
 
-
-int _program_running = 1;
-pthread_mutex_t program_mutex = PTHREAD_MUTEX_INITIALIZER;
-
-
-int get_program_running() {
-    int program_running;
-
-	pthread_mutex_lock(&program_mutex);
-    program_running = _program_running;
-	pthread_mutex_unlock(&program_mutex);
-
-    return program_running;
-}
-
-void set_program_running(int program_running) {
-	pthread_mutex_lock(&program_mutex);
-    _program_running = program_running;
-	pthread_mutex_unlock(&program_mutex);
-}
 
 int main() {
     pthread_t plant_thread, graphics_thread, ip_server_thread;
