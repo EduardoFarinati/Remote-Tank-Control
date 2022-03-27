@@ -23,6 +23,8 @@ typedef struct TankState_t {
 // Tank state function headers
 TankState get_tank();
 
+void set_tank(TankState tank);
+
 void lock_tank_state(TankState* tank);
 
 void unlock_tank_state(TankState* tank);

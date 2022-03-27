@@ -76,23 +76,12 @@ int main() {
 }
 
 void* simulate_plant() {
-    int i = 1;
-
     write_log(INFO, "Starting tank...");
     start_tank();
-    print_tank_state();
 
     while(get_program_running()) {
         sleep_ms(SIMULATION_SLEEP_MS);
         tank_time_step();
-
-        if(i >= 300) {
-            print_tank_state();
-            i = 1;
-        }
-        else {
-            i++;
-        }
     }
 
     return NULL;
@@ -116,7 +105,6 @@ void* generate_graphics() {
 // Tratar limites quando pacote de resposta
 // for perdido
 // Modelo simples da planta
-// Usar porta 9E9E -> E numero do grupo
 // Para tempo clock_gettime, CLOCK_MONOTONIC_RAW
 // Clear dos graficos.
 // Trylock para nao travar a espera de pacotes
@@ -124,9 +112,9 @@ void* receive_ip_packets() {
     start_server_socket();
     
     while(get_program_running()) {
-        sleep_ms(IP_SERVER_SLEEP_MS);
         receive_command();
         command_action();
+        sleep_ms(IP_SERVER_SLEEP_MS);
     }
 
     close_server_socket();

@@ -94,4 +94,7 @@ void tank_time_step() {
 
     // Sets new state
     unlock_tank_state(&tank);
+
+    // Debug state message
+    print_tank_state();
 }

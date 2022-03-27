@@ -6,13 +6,7 @@
 
 // External interactions functions
 void start_tank() {
-    TankState tank;
-
-    // Gets current state
-    lock_tank_state(&tank);
-
-    // Override with initial state
-    tank = (TankState) {
+    TankState tank = {
         .input = 50,
         .output = 0,
         .level = 40,
@@ -21,19 +15,11 @@ void start_tank() {
         .t = 0
     };
 
-    // Sets state
-    unlock_tank_state(&tank);
-}
+    // Override current state with initial state
+    set_tank(tank);
 
-void delta_saturation(TankState* tank) {
-    double over = tank->delta + tank->input;
-
-    if(over > 100) {
-        tank->delta = 100 - tank->input;
-    }
-    else if(over < 0) {
-        tank->delta = -tank->input;
-    }
+    // Debug state message
+    print_tank_state();
 }
 
 void open_valve(int value) {
@@ -42,7 +28,6 @@ void open_valve(int value) {
     write_log(INFO, "Opening valve by: %d%%\n", value);
     lock_tank_state(&tank);
     tank.delta += value;
-    delta_saturation(&tank);
     unlock_tank_state(&tank);
 }
 
@@ -52,7 +37,6 @@ void close_valve(int value) {
     write_log(INFO, "Closing valve by: %d%%\n", value);
     lock_tank_state(&tank);
     tank.delta -= value;
-    delta_saturation(&tank);
     unlock_tank_state(&tank);
 }
 
@@ -76,18 +60,20 @@ int get_level() {
     return round(level);
 }
 
-
 void print_tank_state() {
     TankState tank = get_tank();
 
-    write_log(
-        INFO,
-        "TANK-STATE(T:%.2f)={Lvl:%.2f, In:%.2f, dIn:%.2f, Out:%.2f, Max:%d}\n",
-        tank.t,
-        tank.level, 
-        tank.input,
-        tank.delta,
-        tank.output,
-        tank.max
-    );
+    // Only print if time is close to an integer
+    if(fabs(tank.t - floor(tank.t)) < 11e-3) {
+        write_log(
+            INFO,
+            "TANK-STATE(T:%.2f)={Lvl:%.2f, In:%.2f, dIn:%.2f, Out:%.2f, Max:%d}\n",
+            tank.t,
+            tank.level, 
+            tank.input,
+            tank.delta,
+            tank.output,
+            tank.max
+        );
+    }
 }
