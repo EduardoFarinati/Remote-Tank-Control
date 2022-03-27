@@ -52,7 +52,7 @@ int main() {
     while(!window_closed()) {
         sleep_ms(MAIN_SLEEP_MS);
     }
-    write_log(INFO, "Window closed, stopping program...\n");
+    write_log(CRITICAL, "Window closed, stopping program...\n");
 
     // Sets flag to stop program
     set_program_running(0);

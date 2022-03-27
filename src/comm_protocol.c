@@ -60,56 +60,26 @@ protocol_keyword get_response_keyword(char* keyword_str) {
     }
 }
 
-int get_value(protocol_keyword keyword, int* value, char* value_str) {
-    switch (keyword) {
-        // Messages with integer values
-        case OPEN_VALVE:
-        case OPEN_VALVE_RESPONSE:
-        case CLOSE_VALVE:
-        case CLOSE_VALVE_RESPONSE:
-        case GET_LEVEL_RESPONSE:
-        case SET_MAX:
-        case SET_MAX_RESPONSE:
-            *value = atoi(value_str);
+protocol_value get_value(char* value_str) {
+    // Tries to parse as an unsigned integer
+    protocol_value value = atoi(value_str);
 
-            // Checks for valid values
-            if((0 <= *value) && (*value <= 100)) {
-                return 0;
-            }
-            else {
-                return -1;
-            }
-
-        // Messages with string values
-        case COMM_TEST_RESPONSE:
-        case START_RESPONSE:
-            *value = 0;
-            if(strcmp(value_str, OK_COMPLEMENT) == 0) {
-                return 0;
-            }
-            else {
-                return -1;
-            }
-
-        // Messages with no values
-        case GET_LEVEL:
-        case COMM_TEST:
-        case START:
-        case ERROR_RESPONSE:
-            *value = 0;
-            if(strcmp(value_str, "") == 0) {
-                return 0;
-            }
-            else {
-                return -1;
-            }
-
-        // Error
-        default:
-            *value = 0;
-            return -1;
+    if(value < 0) {
+        value = INVALID_VALUE;
     }
+    else if(value == 0 && (strcmp(value_str, "0") != 0)) {
+        // Input is not an int
+        if(strcmp(value_str, OK_COMPLEMENT) == 0) {
+            value = OK_VALUE;
+        }
+        else if(strcmp(value_str, "") == 0) {
+            value = NO_VALUE;
+        }
+    }
+
+    return value;
 }
+
 
 void get_keyword_value(char* message, char* keyword_str, char* value_str) {
     int tokens_found;
@@ -149,114 +119,188 @@ void get_keyword_value(char* message, char* keyword_str, char* value_str) {
     }
 }
 
-void parse_command(char* message, protocol_keyword* keyword, int* value) {
-    char keyword_str[KEYWORD_MAX_LENGTH+1], value_str[VALUE_MAX_LENGTH+1];
-
-    // Get keyword and value as strings
-    get_keyword_value(message, keyword_str, value_str);
-
-    // Parse message and sets errors
-    *keyword = get_command_keyword(keyword_str);
-    if(*keyword != ERROR) {
-        if(get_value(*keyword, value, value_str) != 0) {
-            *keyword = ERROR;
-        }
+int is_packet_done(char* message) {
+    // Waits for "!" at the end
+    if(strstr(message, MESSAGE_TOKEN)) {
+        return 1;
+    }
+    else {
+        return 0;
     }
 }
 
-void parse_response(char* message, protocol_keyword* keyword, int* value) {
-    char keyword_str[KEYWORD_MAX_LENGTH+1], value_str[VALUE_MAX_LENGTH+1];
-
-    // Get keyword and value as strings
-    get_keyword_value(message, keyword_str, value_str);
-
-    // Parse message and sets errors
-    *keyword = get_response_keyword(keyword_str);
-    if(*keyword != ERROR) {
-        if(get_value(*keyword, value, value_str) != 0) {
-            *keyword = ERROR;
-        }
-    }
-}
-
-void format_message_with_integer_value(char* message, char* keyword_str, int value) {
-    // Formats string as specified for communication
-    snprintf(message, BUFFER_LENGTH, "%s"KEYWORD_TOKEN"%d"MESSAGE_TOKEN, keyword_str, value);
-    // BUFFER LENGTH ensures string is long enough
-}
-
-void format_message_with_str_value(char* message, char* keyword_str, char* value) {
-    // Formats string as specified for communication
-    snprintf(message, BUFFER_LENGTH, "%s"KEYWORD_TOKEN"%s"MESSAGE_TOKEN, keyword_str, value);
-    // BUFFER LENGTH ensures string is long enough
-}
-
-void format_message_with_no_value(char* message, char* keyword_str) {
-    // Formats string as specified for communication
-    snprintf(message, BUFFER_LENGTH, "%s"MESSAGE_TOKEN, keyword_str);
-    // BUFFER LENGTH ensures string is long enough
-}
-
-void format_message(char* message, protocol_keyword keyword, int value) {
-    switch(keyword) {
-        // Messages with integer values
+int is_packet_valid(protocol_packet packet) {
+    switch(packet.keyword) {
+        // Keywords with int values
         case OPEN_VALVE:
-            format_message_with_integer_value(message, OPEN_VALVE_STR, value);
+        case OPEN_VALVE_RESPONSE:
+        case CLOSE_VALVE:
+        case CLOSE_VALVE_RESPONSE:
+        case GET_LEVEL_RESPONSE:
+        case SET_MAX:
+        case SET_MAX_RESPONSE:
+            if((MIN_VALUE <= packet.value) && (packet.value <= MAX_VALUE)) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+
+        // Keywords with no values
+        case GET_LEVEL:
+        case COMM_TEST:
+        case START:
+        case ERROR_RESPONSE:
+            if(packet.value == NO_VALUE) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+
+        // Keywords with OK values
+        case COMM_TEST_RESPONSE:
+        case START_RESPONSE:
+            if(packet.value == OK_VALUE) {
+                return 1;
+            }
+            else {
+                return 0;
+            }
+
+        // Error on formatting
+        case ERROR:
+        default:
+            return 0;
+    }
+}
+
+protocol_packet parse_command(char* message) {
+    protocol_packet packet;
+    char keyword_str[KEYWORD_MAX_LENGTH+1], value_str[VALUE_MAX_LENGTH+1];
+
+    // Get keyword and value as strings
+    get_keyword_value(message, keyword_str, value_str);
+
+    // Parse packet
+    packet = (protocol_packet) {
+        .keyword = get_command_keyword(keyword_str),
+        .value = get_value(value_str)
+    };
+
+    if(is_packet_valid(packet)) {
+        return packet;
+    }
+    else {
+        return (protocol_packet) { 
+            .keyword = ERROR, 
+            .value = INVALID_VALUE
+        };
+    }
+}
+
+protocol_packet parse_response(char* message) {
+    protocol_packet packet;
+    char keyword_str[KEYWORD_MAX_LENGTH+1], value_str[VALUE_MAX_LENGTH+1];
+
+    // Get keyword and value as strings
+    get_keyword_value(message, keyword_str, value_str);
+
+    // Parse packet
+    packet = (protocol_packet) {
+        .keyword = get_response_keyword(keyword_str),
+        .value = get_value(value_str)
+    };
+
+    if(is_packet_valid(packet)) {
+        return packet;
+    }
+    else {
+        return (protocol_packet) { 
+            .keyword = ERROR, 
+            .value = INVALID_VALUE
+        };
+    }
+}
+
+void get_keyword_str(protocol_keyword keyword, char* keyword_str) {
+    switch (keyword) {
+        case OPEN_VALVE:
+            strcpy(keyword_str, OPEN_VALVE_STR);
             break;
 
         case OPEN_VALVE_RESPONSE:
-            format_message_with_integer_value(message, OPEN_VALVE_RESPONSE_STR, value);
+            strcpy(keyword_str, OPEN_VALVE_RESPONSE_STR);
             break;
 
         case CLOSE_VALVE:
-            format_message_with_integer_value(message, CLOSE_VALVE_STR, value);
+            strcpy(keyword_str, CLOSE_VALVE_STR);
             break;
 
         case CLOSE_VALVE_RESPONSE:
-            format_message_with_integer_value(message, CLOSE_VALVE_RESPONSE_STR, value);
+            strcpy(keyword_str, CLOSE_VALVE_RESPONSE_STR);
+            break;
+
+        case GET_LEVEL:
+            strcpy(keyword_str, GET_LEVEL_STR);
             break;
 
         case GET_LEVEL_RESPONSE:
-            format_message_with_integer_value(message, GET_LEVEL_RESPONSE_STR, value);
-            break;
-
-        case SET_MAX:
-            format_message_with_integer_value(message, SET_MAX_STR, value);
-            break;
-
-        case SET_MAX_RESPONSE:
-            format_message_with_integer_value(message, SET_MAX_RESPONSE_STR, value);
-            break;
-
-        // Messages with string values
-        case COMM_TEST_RESPONSE:
-            format_message_with_str_value(message, COMM_TEST_RESPONSE_STR, OK_COMPLEMENT);
-            break;
-
-        case START_RESPONSE:
-            format_message_with_str_value(message, START_STR, OK_COMPLEMENT);
-            break;
-
-        // Messages with no values
-        case GET_LEVEL:
-            format_message_with_no_value(message, GET_LEVEL_STR);
+            strcpy(keyword_str, GET_LEVEL_RESPONSE_STR);
             break;
 
         case COMM_TEST:
-            format_message_with_no_value(message, COMM_TEST_STR);
+            strcpy(keyword_str, COMM_TEST_STR);
+            break;
+
+        case COMM_TEST_RESPONSE:
+            strcpy(keyword_str, COMM_TEST_RESPONSE_STR);
+            break;
+
+        case SET_MAX:
+            strcpy(keyword_str, SET_MAX_STR);
+            break;
+
+        case SET_MAX_RESPONSE:
+            strcpy(keyword_str, SET_MAX_RESPONSE_STR);
             break;
 
         case START:
-            format_message_with_no_value(message, START_STR);
+            strcpy(keyword_str, START_STR);
+            break;
+
+        case START_RESPONSE:
+            strcpy(keyword_str, START_RESPONSE_STR);
             break;
 
         case ERROR_RESPONSE:
-            format_message_with_no_value(message, ERROR_RESPONSE_STR);
+            strcpy(keyword_str, ERROR_RESPONSE_STR);
             break;
-
-        // Shouldnt be reached
+        
         case ERROR:
-            format_message_with_no_value(message, ERROR_RESPONSE_STR);
+        default:
+            // Shouldnt be reached
+            strcpy(keyword_str, ERROR_RESPONSE_STR);
             break;
+    }
+}
+
+void format_message(char* message, protocol_packet packet) {
+    // Formats string as specified for communication
+    char keyword_str[KEYWORD_MAX_LENGTH+1];
+    get_keyword_str(packet.keyword, keyword_str);
+
+    // BUFFER LENGTH ensures string is long enough
+    if(packet.value == OK_VALUE) {
+        // "OK" value
+        snprintf(message, BUFFER_LENGTH, "%s"KEYWORD_TOKEN"%s"MESSAGE_TOKEN, keyword_str, OK_COMPLEMENT);
+    }
+    else if(packet.value == NO_VALUE) {
+        // "" value
+        snprintf(message, BUFFER_LENGTH, "%s"MESSAGE_TOKEN, keyword_str);
+    }
+    else {
+        // 0-100 value
+        snprintf(message, BUFFER_LENGTH, "%s"KEYWORD_TOKEN"%d"MESSAGE_TOKEN, keyword_str, packet.value);
     }
 }

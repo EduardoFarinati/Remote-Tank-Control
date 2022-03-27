@@ -10,9 +10,8 @@
 int server_socket;
 struct sockaddr_in client_address;
 
-char command[BUFFER_LENGTH];
-protocol_keyword keyword;
-int value;
+char buffer[BUFFER_LENGTH+1];
+protocol_packet packet;
 
 
 int start_server_socket_p(int port) {
@@ -31,57 +30,77 @@ int start_server_socket() {
 
 int receive_command() {
     // Tries to receive a message
-    int return_code = receive_message(command, server_socket, &client_address);
+    int return_code = receive_message(buffer, server_socket, &client_address);
 
     if(return_code == 0) {
         // Tries parsing message
-        parse_command(command, &keyword, &value);
+        packet = parse_command(buffer);
     }
 
     return return_code;
 }
 
 void command_action() {
-    protocol_keyword response_keyword;
+    protocol_packet response_packet;
     char response[BUFFER_LENGTH];
 
-    switch(keyword) {
+    switch(packet.keyword) {
         case OPEN_VALVE:
-            open_valve(value);
-            response_keyword = OPEN_VALVE_RESPONSE;
+            open_valve(packet.value);
+            response_packet = (protocol_packet) {
+                .keyword = OPEN_VALVE_RESPONSE,
+                .value = packet.value
+            };
             break;
         
         case CLOSE_VALVE:
-            close_valve(value);
-            response_keyword = CLOSE_VALVE_RESPONSE;
+            close_valve(packet.value);
+            response_packet = (protocol_packet) {
+                .keyword = CLOSE_VALVE_RESPONSE,
+                .value = packet.value
+            };
             break;
 
         case GET_LEVEL:
-            value = get_level();
-            response_keyword = GET_LEVEL_RESPONSE;
+            response_packet = (protocol_packet) {
+                .keyword = GET_LEVEL_RESPONSE,
+                .value = get_level()
+            };
             break;
 
         case COMM_TEST:
-            response_keyword = COMM_TEST_RESPONSE;
+            response_packet = (protocol_packet) {
+                .keyword = COMM_TEST_RESPONSE,
+                .value = OK_VALUE
+            };
             break;
 
         case SET_MAX:
-            set_max(value);
-            response_keyword = SET_MAX_RESPONSE;
+            set_max(packet.value);
+            response_packet = (protocol_packet) {
+                .keyword = SET_MAX_RESPONSE,
+                .value = packet.value
+            };
             break;
 
         case START:
             start_tank();
-            response_keyword = START_RESPONSE;
+            response_packet = (protocol_packet) {
+                .keyword = START_RESPONSE,
+                .value = OK_VALUE
+            };
             break;
 
         default:
-            response_keyword = ERROR_RESPONSE;
+            response_packet = (protocol_packet) {
+                .keyword = ERROR_RESPONSE,
+                .value = NO_VALUE
+            };
             break;
     }
 
     // Sends formatted message to client
-    format_message(response, response_keyword, value);
+    format_message(response, response_packet);
     send_message(response, server_socket, &client_address);
 }
 

@@ -63,6 +63,7 @@ int main() {
     while(!window_closed()) {
         sleep_ms(MAIN_SLEEP_MS);
     }
+    write_log(CRITICAL, "Window closed, stopping program...\n");
 
     // Sets flag to stop program
     set_program_running(0);
@@ -108,6 +109,7 @@ void* generate_graphics() {
 // Para tempo clock_gettime, CLOCK_MONOTONIC_RAW
 // Clear dos graficos.
 // Trylock para nao travar a espera de pacotes
+// Testar mensagens com bytes corrompidos
 void* receive_ip_packets() {
     start_server_socket();
     

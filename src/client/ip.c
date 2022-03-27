@@ -13,10 +13,8 @@
 int client_socket;
 struct sockaddr_in server_address;
 
-protocol_keyword keyword;
-int value;
-
-char response[BUFFER_LENGTH];
+char buffer[BUFFER_LENGTH+1];
+protocol_packet command_packet, response_packet;
 
 
 int start_client_socket() {
@@ -48,61 +46,76 @@ int send_command() {
     char command[BUFFER_LENGTH];
 
     // Tries to send a message
-    format_message(command, keyword, value);
+    format_message(command, command_packet);
 
     if(send_message(command, client_socket, &server_address)) {
         return -1;
     }
     else {
         // Send OK, receive response
-        return receive_message(response, client_socket, &server_address);
+        return receive_message(buffer, client_socket, &server_address);
     }
 }
 
 int check_response() {
-    protocol_keyword response_keyword, expected_keyword;
-    int response_value = 0, expected_value;
+    protocol_packet expected_packet;
 
-    parse_response(response, &response_keyword, &value);
+    response_packet = parse_response(buffer);
 
-    switch(keyword) {
+    switch(command_packet.keyword) {
         case OPEN_VALVE:
-            expected_keyword = OPEN_VALVE_RESPONSE;
-            expected_value = value;
+            expected_packet = (protocol_packet) {
+                .keyword = OPEN_VALVE_RESPONSE,
+                .value = command_packet.value
+            };
             break;
         
         case CLOSE_VALVE:
-            expected_keyword = CLOSE_VALVE_RESPONSE;
-            expected_value = value;
+            expected_packet = (protocol_packet) {
+                .keyword = CLOSE_VALVE_RESPONSE,
+                .value = command_packet.value
+            };
             break;
 
         case GET_LEVEL:
-            expected_keyword = GET_LEVEL_RESPONSE;
-            expected_value = response_value;
+            expected_packet = (protocol_packet) {
+                .keyword = GET_LEVEL_RESPONSE,
+                .value = response_packet.value // Value must only be acceptable
+            };
             break;
 
         case COMM_TEST:
-            expected_keyword = COMM_TEST_RESPONSE;
-            expected_value = response_value;
+            expected_packet = (protocol_packet) {
+                .keyword = COMM_TEST_RESPONSE,
+                .value = OK_VALUE
+            };
             break;
 
         case SET_MAX:
-            expected_keyword = SET_MAX_RESPONSE;
-            expected_value = value;
+            expected_packet = (protocol_packet) {
+                .keyword = SET_MAX_RESPONSE,
+                .value = command_packet.value
+            };
             break;
 
         case START:
-            expected_keyword = START_RESPONSE;
-            expected_value = response_value;
+            expected_packet = (protocol_packet) {
+                .keyword = START_RESPONSE,
+                .value = OK_VALUE
+            };
             break;
 
         default:
-            expected_keyword = ERROR_RESPONSE;
-            expected_value = response_value;
+            // Shouldnt be reached
+            expected_packet = (protocol_packet) {
+                .keyword = ERROR_RESPONSE,
+                .value = NO_VALUE
+            };
             break;
     }
 
-    if((response_keyword == expected_keyword) && (response_value == expected_value)) {
+    if((response_packet.keyword == expected_packet.keyword)
+        && (response_packet.value == expected_packet.value)) {
         return 0;
     }
     else {
@@ -111,7 +124,11 @@ int check_response() {
 }
 
 int comm_test() {
-    keyword = COMM_TEST;
+    command_packet = (protocol_packet) {
+        .keyword = COMM_TEST,
+        .value = NO_VALUE
+    };
+
     if(!send_command() && !check_response()) {
         return 0;
     }
@@ -121,7 +138,11 @@ int comm_test() {
 }
 
 int start_tank() {
-    keyword = START;
+    command_packet = (protocol_packet) {
+        .keyword = START,
+        .value = NO_VALUE
+    };
+
     if(!send_command() && !check_response()) {
         return 0;
     }
@@ -131,9 +152,13 @@ int start_tank() {
 }
 
 int get_level(TankState* tank) {
-    keyword = GET_LEVEL;
+    command_packet = (protocol_packet) {
+        .keyword = GET_LEVEL,
+        .value = NO_VALUE
+    };
+
     if(!send_command() && !check_response()) {
-        tank->level = value;
+        tank->level = response_packet.value;
 
         return 0;
     }
@@ -153,12 +178,16 @@ int set_input_valve(TankState* tank) {
     int delta = u - u_p;
 
     if(delta >= 0) {
-        keyword = OPEN_VALVE;
-        value = delta;
+        command_packet = (protocol_packet) {
+            .keyword = OPEN_VALVE,
+            .value = delta
+        };
     }
     else {
-        keyword = CLOSE_VALVE;
-        value = -delta;
+        command_packet = (protocol_packet) {
+            .keyword = CLOSE_VALVE,
+            .value = -delta
+        };
     }
 
     tank->input += delta;

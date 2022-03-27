@@ -27,6 +27,22 @@ typedef enum protocol_keyword_t {
     ERROR_RESPONSE
 } protocol_keyword;
 
+typedef enum protocol_value_t {
+    // Values from 0 to 100 are acceptable
+    MIN_VALUE = 0,
+    MAX_VALUE = 100,
+
+    // Also some constants
+    NO_VALUE = -1,
+    OK_VALUE = -2,
+    INVALID_VALUE = -3
+} protocol_value;
+
+typedef struct protocol_packet_t {
+    protocol_keyword keyword;
+    protocol_value value;
+} protocol_packet;
+
 #define OPEN_VALVE_STR "OpenValve"
 #define OPEN_VALVE_RESPONSE_STR "Open"
 #define CLOSE_VALVE_STR "CloseValve"
@@ -53,6 +69,7 @@ typedef enum protocol_keyword_t {
 
 
 // Communication function headers
+// Socket function headers
 int create_socket();
 
 void close_socket(int socket_id);
@@ -63,11 +80,12 @@ int receive_message(char* message, int socket_id, struct sockaddr_in* from_addre
 
 int send_message(char* message, int socket_id, struct sockaddr_in* to_address);
 
-void parse_command(char* message, protocol_keyword* keyword, int* value);
+// Parsing function headers
+protocol_packet parse_command(char* message);
 
-void parse_response(char* message, protocol_keyword* keyword, int* value);
+protocol_packet parse_response(char* message);
 
-void format_message(char* message, protocol_keyword keyword, int value);
+void format_message(char* message, protocol_packet packet);
 
 
 #endif
