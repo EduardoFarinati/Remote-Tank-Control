@@ -56,6 +56,8 @@ void print_tank_state();
 
 void tank_time_step();
 
+void reset_time();
+
 // Plant interaction function headers
 void start_tank();
 

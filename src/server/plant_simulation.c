@@ -1,11 +1,21 @@
 #include <math.h>
 
 #include "server.h"
+#include "../time.h"
 
+
+struct timespec time_before;
+
+
+void reset_time() {
+    time_before = get_current_time();
+}
 
 double get_time_delta(TankState* tank) {
-    // TODO: Get exact time delta
-    double dt = 0.01;
+    struct timespec time_now = get_current_time();
+
+    double dt = get_time_delta_ms(time_before);
+    time_before = time_now;
 
     tank->t += dt;
     return dt;

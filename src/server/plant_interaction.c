@@ -17,6 +17,7 @@ void start_tank() {
 
     // Override current state with initial state
     set_tank(tank);
+    reset_time();
 
     // Debug state message
     print_tank_state();
