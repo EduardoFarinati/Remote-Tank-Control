@@ -7,6 +7,7 @@
 TankState _tank = {
     .input = 50,
     .level = 40,
+    .delta = 0,
     .max = 100
 };
 pthread_mutex_t tank_mutex = PTHREAD_MUTEX_INITIALIZER;

@@ -83,12 +83,9 @@ void* generate_graphics() {
 }
 
 // TODO:
-// Se o numero de bytes nao bater
-// Chamar Recvfrom multiplas vezes! RECVFROM MSG_DONTWAIT
 // Tratar limites quando pacote de resposta
 // for perdido
 // Modelo simples da planta
-// Para tempo clock_gettime, CLOCK_MONOTONIC_RAW
 // Clear dos graficos.
 // Trylock para nao travar a espera de pacotes
 // Testar mensagens com bytes corrompidos

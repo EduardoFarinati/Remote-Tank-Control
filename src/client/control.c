@@ -1,6 +1,7 @@
 #include <math.h>
 
 #include "client.h"
+#include "../time.h"
 
 
 // PID controller definition
@@ -19,6 +20,12 @@ int e_p = 40; // Past measure of e
 int max_u = 100;
 int min_u = 0;
 
+// Controller reference
+int r = 80;
+
+// Time delta calculation
+struct timespec time_before;
+
 
 // Maintains controller between 0 and 100
 void controller_saturation(int* u) {
@@ -30,7 +37,7 @@ void controller_saturation(int* u) {
    }
 }
 
-// Discrete PID controller calculation, tustin approximation
+// Discrete PID controller calculation
 int controller_output(int r, int y) {
    int u;
    int e = r - y;
@@ -48,4 +55,47 @@ int controller_output(int r, int y) {
    e_p = e;
 
    return u;
+}
+
+
+void reset_time() {
+   time_before = get_current_time();
+}
+
+double get_tank_time_delta() {
+   struct timespec time_now = get_current_time();
+
+   double dt = get_time_delta(time_before);
+   time_before = time_now;
+
+   return dt;
+}
+
+// Update controller output
+void update_controller() {
+   TankState tank;
+
+   lock_tank_state(&tank);
+   int y = tank.level;
+
+   // Update output
+   int u = controller_output(r, y);
+   int u_p = tank.input;
+   tank.delta = u - u_p;
+
+   // Update time
+   tank.t += get_tank_time_delta();
+   
+   unlock_tank_state(&tank);
+}
+
+void set_max_min_opening(int value) {
+   // Fix limits when we dont know by how much
+   // the valve is opened
+   if(value > 0) {
+      max_u -= value;
+   }
+   else if (value < 0) {
+      min_u += -value;
+   }
 }

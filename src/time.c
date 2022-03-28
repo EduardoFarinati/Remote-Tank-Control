@@ -22,7 +22,7 @@ struct timespec get_current_time() {
     return time;
 }
 
-double get_time_delta_ms(struct timespec time_before) {
+double get_time_delta(struct timespec time_before) {
     // Calculate the actual time after a delay
     double dt;
 

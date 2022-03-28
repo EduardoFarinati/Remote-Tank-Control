@@ -1,3 +1,7 @@
+// Convert int macro to string macro
+#define STR_HELPER(x) #x
+#define STR(x) STR_HELPER(x)
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -97,7 +101,7 @@ void get_keyword_value(char* message, char* keyword_str, char* value_str) {
             // Message type "KEYWORD#VALUE!"
             tokens_found = sscanf(
                 message,
-                "%[^" KEYWORD_TOKEN "]" KEYWORD_TOKEN "%[^" MESSAGE_TOKEN "]" MESSAGE_TOKEN,
+                "%" STR(KEYWORD_MAX_LENGTH) "[^" KEYWORD_TOKEN "]" KEYWORD_TOKEN "%" STR(VALUE_MAX_LENGTH) "[^" MESSAGE_TOKEN "]" MESSAGE_TOKEN,
                 keyword_str,
                 value_str
             );
@@ -108,7 +112,7 @@ void get_keyword_value(char* message, char* keyword_str, char* value_str) {
         else {
             // Message type "KEYWORD!"
             tokens_found = sscanf(
-                message, "%[^" MESSAGE_TOKEN "]" MESSAGE_TOKEN,
+                message, "%" STR(KEYWORD_MAX_LENGTH) "[^" MESSAGE_TOKEN "]" MESSAGE_TOKEN,
                 keyword_str
             );
             value_str[0] = '\0';
@@ -128,7 +132,7 @@ void get_keyword_value(char* message, char* keyword_str, char* value_str) {
 
 int is_packet_done(char* message) {
     if (!was_complete) {
-        if(get_time_delta_ms(started_receiving) > MESSAGE_TIMEOUT_S) {
+        if(get_time_delta(started_receiving) > MESSAGE_TIMEOUT_S) {
             was_complete = 1;
 
             return 1;

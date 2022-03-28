@@ -11,10 +11,10 @@ void reset_time() {
     time_before = get_current_time();
 }
 
-double get_time_delta(TankState* tank) {
+double get_tank_time_delta(TankState* tank) {
     struct timespec time_now = get_current_time();
 
-    double dt = get_time_delta_ms(time_before);
+    double dt = get_time_delta(time_before);
     time_before = time_now;
 
     tank->t += dt;
@@ -83,6 +83,7 @@ void tank_level_saturation(TankState* tank) {
 
 void tank_time_step() {
     TankState tank;
+
     double influx, outflux;
     double dt;
 
@@ -90,7 +91,7 @@ void tank_time_step() {
     lock_tank_state(&tank);
 
     // Calclates plant time step
-    dt = get_time_delta(&tank);
+    dt = get_tank_time_delta(&tank);
     update_input_angle(&tank, dt);
     update_output_angle(&tank);
 

@@ -7,6 +7,7 @@
 
 #include "client.h"
 #include "../comm.h"
+#include "../time.h"
 #include "../debug.h"
 
 
@@ -14,12 +15,31 @@ int client_socket;
 struct sockaddr_in server_address;
 
 char buffer[BUFFER_LENGTH+1];
-protocol_packet command_packet, response_packet;
+protocol_packet command_packet, response_packet, expected_packet;
+
+int waiting_answer;
+
+int received_valve_opening_with_wrong_value = 0;
+
+typedef enum tank_update_state_t {
+    TESTING_COMM,
+    STARTING_TANK,
+    GETTING_LEVEL,
+    SETTING_INPUT_VALVE,
+} tank_update_state;
+
+tank_update_state update_state = TESTING_COMM;
+
+// Time when last message was sent
+struct timespec sent_time;
+
+// Tank when tried to update input valve 
+TankState tank_before;
 
 
 int start_client_socket() {
     client_socket = create_socket();
-    if(client_socket) {
+    if(client_socket && bind_port(client_socket, 9696)) {
         return 0;
     }
     else {
@@ -39,7 +59,8 @@ void set_server_address_p(char* server_ip_address, int server_port) {
 }
 
 void set_server_address(char* server_ip_address) {
-    set_server_address_p(server_ip_address, DEFAULT_PORT);
+    //set_server_address_p(server_ip_address, DEFAULT_PORT);
+    set_server_address_p(server_ip_address, 9797);
 }
 
 int send_command() {
@@ -52,16 +73,14 @@ int send_command() {
         return -1;
     }
     else {
-        // Send OK, receive response
-        return receive_message(buffer, client_socket, &server_address);
+        // Send OK
+        sent_time = get_current_time();
+
+        return 0;
     }
 }
 
-int check_response() {
-    protocol_packet expected_packet;
-
-    response_packet = parse_response(buffer);
-
+int check_valid_response() {
     switch(command_packet.keyword) {
         case OPEN_VALVE:
             expected_packet = (protocol_packet) {
@@ -114,108 +133,176 @@ int check_response() {
             break;
     }
 
-    if((response_packet.keyword == expected_packet.keyword)
-        && (response_packet.value == expected_packet.value)) {
-        return 0;
+    if(response_packet.value == expected_packet.value) {
+        if(response_packet.keyword == expected_packet.keyword) {
+            return 0;
+        }
     }
     else {
+        if(response_packet.keyword == OPEN_VALVE_RESPONSE || response_packet.keyword == CLOSE_VALVE_RESPONSE) {
+            received_valve_opening_with_wrong_value = 1;
+        }
+
         return -1;
     }
 }
 
-int comm_test() {
-    command_packet = (protocol_packet) {
-        .keyword = COMM_TEST,
-        .value = NO_VALUE
-    };
 
-    if(!send_command() && !check_response()) {
-        return 0;
-    }
-    else {
-        return -1;
-    }
-}
+void set_valve_packet_setup() {
+    TankState tank = get_tank();
 
-int start_tank() {
-    command_packet = (protocol_packet) {
-        .keyword = START,
-        .value = NO_VALUE
-    };
-
-    if(!send_command() && !check_response()) {
-        return 0;
-    }
-    else {
-        return -1;
-    }
-}
-
-int get_level(TankState* tank) {
-    command_packet = (protocol_packet) {
-        .keyword = GET_LEVEL,
-        .value = NO_VALUE
-    };
-
-    if(!send_command() && !check_response()) {
-        tank->level = response_packet.value;
-
-        return 0;
-    }
-    else {
-        return -1;
-    }
-}
-
-int set_input_valve(TankState* tank) {
-    // Calculates control input
-    int r = 80; // Reference
-    int y = tank->level;
-    int u_p = tank->input;
-    int u = controller_output(r, y);
-
-    // Calculates variation
-    int delta = u - u_p;
-
-    if(delta >= 0) {
+    if(tank.delta >= 0) {
         command_packet = (protocol_packet) {
             .keyword = OPEN_VALVE,
-            .value = delta
+            .value = tank.delta
         };
     }
     else {
         command_packet = (protocol_packet) {
             .keyword = CLOSE_VALVE,
-            .value = -delta
+            .value = -tank.delta
         };
     }
 
-    tank->input += delta;
-    if(!send_command() && !check_response()) {
+    // Sets tank to compare when message
+    // is received
+    tank_before = tank;
+}
 
-        return 0;
+void treat_answer() {
+    TankState tank;
+
+    if(check_valid_response() == 0) {
+        switch (update_state) {
+            case TESTING_COMM:
+                update_state = GETTING_LEVEL;
+                break;
+
+            case STARTING_TANK:
+                reset_time();
+                update_state = GETTING_LEVEL;
+                break;
+
+            case GETTING_LEVEL:
+                lock_tank_state(&tank);
+                tank.level = response_packet.value;
+                unlock_tank_state(&tank);
+                update_state = SETTING_INPUT_VALVE;
+                break;
+
+            case SETTING_INPUT_VALVE:
+                lock_tank_state(&tank);
+                tank.input += tank_before.delta;
+                tank.delta -= tank_before.delta;
+                unlock_tank_state(&tank);
+                update_state = GETTING_LEVEL;
+                break;
+            
+            default:
+                break;
+        }
     }
     else {
-        return -1;
+        if(response_packet.keyword == ERROR_RESPONSE) {
+            // Packet dropped by server
+        }
+        else if(!is_packet_similar(buffer, expected_packet) || received_valve_opening_with_wrong_value) {
+            // Packet may have been received
+            if(update_state == SETTING_INPUT_VALVE) {
+                if(command_packet.keyword == OPEN_VALVE) {
+                    set_max_min_opening(command_packet.value);
+                }
+                else if(command_packet.keyword == CLOSE_VALVE) {
+                    set_max_min_opening(-command_packet.value);
+                }
+
+                // Clear flag
+                received_valve_opening_with_wrong_value = 0;
+            }
+        }
+        else {
+            // Assume OK
+            switch (update_state) {
+                case TESTING_COMM:
+                    update_state = GETTING_LEVEL;
+                    break;
+                
+                case STARTING_TANK:
+                    reset_time();
+                    update_state = GETTING_LEVEL;
+                    break;
+
+                case GETTING_LEVEL:
+                    update_state = SETTING_INPUT_VALVE;
+                    break;
+
+                case SETTING_INPUT_VALVE:
+                    lock_tank_state(&tank);
+                    tank.input += tank_before.delta;
+                    tank.delta -= tank_before.delta;
+                    unlock_tank_state(&tank);
+                    update_state = GETTING_LEVEL;
+                    break;
+                
+                default:
+                    break;
+            }
+        }
     }
 }
 
-void set_time(TankState* tank) {
-    double dt = CONTROL_SLEEP_MS * 1e-3; 
-
-    tank->t += dt;
+void check_answer() {
+    // Tries to receive the response
+    if(receive_message(buffer, client_socket, &server_address) == 0) {
+        // Tries parsing message
+        if(is_packet_done(buffer) || (get_time_delta(sent_time) > NO_ANSWER_TIMEOUT)) {
+            response_packet = parse_response(buffer);
+            waiting_answer = 0;
+            treat_answer();
+        }
+    }
 }
 
 void update_tank() {
-    TankState tank = get_tank();
+    if (!waiting_answer) {
+        switch (update_state) {
+            case TESTING_COMM:
+                command_packet = (protocol_packet) {
+                    .keyword = COMM_TEST,
+                    .value = NO_VALUE
+                };
+                break;
 
-    // New values
-    get_level(&tank);
-    set_input_valve(&tank);
-    set_time(&tank);
+            case STARTING_TANK:
+                command_packet = (protocol_packet) {
+                    .keyword = START,
+                    .value = NO_VALUE
+                };
+                break;
 
-    // Update tank state
-    set_tank(tank);
+            case GETTING_LEVEL:
+                command_packet = (protocol_packet) {
+                    .keyword = GET_LEVEL,
+                    .value = NO_VALUE
+                };
+                break;
+
+            case SETTING_INPUT_VALVE:
+                set_valve_packet_setup();
+                break;
+
+            default:
+                break;
+        }
+
+        // Tries to send
+        if(send_command() == 0) {
+            waiting_answer = 1;
+        }
+    }
+    else {
+        check_answer();
+    }
 }
 
 void close_client_socket() {

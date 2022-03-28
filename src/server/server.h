@@ -5,8 +5,8 @@
 // Thread sleep constants
 #define MAIN_SLEEP_MS 500
 #define SIMULATION_SLEEP_MS 10
+#define IP_SERVER_SLEEP_MS 15
 #define GRAPHICS_SLEEP_MS 50
-#define IP_SERVER_SLEEP_MS 20
 
 
 // Tank state for plant simulation
