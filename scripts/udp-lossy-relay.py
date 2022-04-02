@@ -4,7 +4,7 @@
 
 import argparse
 import socket
-from random import random, shuffle, choice
+from random import random, uniform, shuffle, choice
 from time import sleep
 import string
 
@@ -19,11 +19,12 @@ BUFFER_SIZE = 16
 PORT = 9797
 
 # Fail communication parameters
-latency = 100e-3
-lose = 0.2
-corrupt = 0.2
-corrupt_how_much = 0.2  # How much of the package will be corrupted, if the package is corrupted
-reorder = 0
+average_latency = 100e-3
+latency_spread = 0.25
+lose = 0.1
+corrupt = 0.02
+corrupt_how_much = 0.2  # How much of the package will be corrupted, given that it is corrupted
+reorder = 0.25
 
 # Buffer of out of order packages
 reordering = []
@@ -37,6 +38,10 @@ reordered = 0
 
 # List of random possible corrupted characters
 corrupted_characters = string.ascii_letters + string.digits
+
+# Range of latencies between messages
+latency_min = average_latency - (latency_spread * average_latency)
+latency_max = average_latency + (latency_spread * average_latency)
 
 
 def debug_print(message):
@@ -75,24 +80,19 @@ def bind_port():
 
 
 def relay(udp_socket, a_address, b_address):
-    global received
-
     try:
         while True:
-            # Receives message and compares
-            data, address = udp_socket.recvfrom(BUFFER_SIZE)
+            data, address = receive_package(udp_socket)
             debug_print(f"Received '{data}' from '{address[0]}:{address[1]}'.")
 
             if address == a_address:
-                received += 1
                 debug_print(f"Forwarding to {b_address}...")
-                try_sending(udp_socket, data, b_address)
-
+                package = (data, b_address)
+                try_sending(udp_socket, package)
             elif address == b_address:
-                received += 1
                 debug_print(f"Forwarding to {a_address}...")
-                try_sending(udp_socket, data, a_address)
-
+                package = (data, a_address)
+                try_sending(udp_socket, package)
             else:
                 debug_print("Packet dropped, unknown address.")
 
@@ -100,40 +100,76 @@ def relay(udp_socket, a_address, b_address):
         udp_socket.close()
 
 
-def try_sending(udp_socket, data, address):
-    global sent, lost, reordered, corrupted
+def receive_package(udp_socket):
+    global received
 
+    # Receives message and compares
+    package = udp_socket.recvfrom(BUFFER_SIZE)
+    received += 1
+
+    return package
+
+
+def try_sending(udp_socket, package):
     # Might fail randomly
-    sleep(latency)
     if random() < lose:
-        lost += 1
-        debug_print("Lost package!")
+        lose_package()
     else:
         if random() < corrupt:
-            corrupted += 1
-            data = corrupt_data(data)
-            debug_print("Corrupted package!")
+            package = corrupt_package(package)
         if random() < reorder:
-            reordered += 1
-            debug_print("Reordering packages!")
-            reordering.append((data, address))
+            reorder_package(package)
         else:
             # Sends all reordered packages
             if reordering:
                 send_out_of_order(udp_socket)
 
-            # Sends package normally
-            udp_socket.sendto(data, address)
-            sent += 1
+            # Sends package "normally"
+            send_package(udp_socket, package)
 
+
+
+def lose_package():
+    global lost
+
+    lost += 1
+    debug_print("Lost package!")
  
-def corrupt_data(data):
+
+def corrupt_package(package):
+    global corrupted
+
+    corrupted += 1
+    debug_print("Corrupted package!")
+
+    # Will not corrupt address (it would work as a lost package)
+    data, address = package
+    data = corrupt_bytes(data)
+    corrupted_package = (data, address)
+
+    return corrupted_package
+
+
+def reorder_package(package):
+    global reordered
+
+    reordered += 1
+    debug_print("Reordering packages!")
+
+    # Appends to the list of reordering packages
+    # will be sent together out of order
+    reordering.append(package)
+
+
+def corrupt_bytes(byte_str):
     corrupted = ""
-    for c in data.decode():
+
+    for c in byte_str.decode():
         if random() < corrupt_how_much:
             corrupted += random_char()
         else:
             corrupted += c
+
     return corrupted.encode()
 
 
@@ -148,10 +184,25 @@ def send_out_of_order(udp_socket):
     shuffle(reordering)
 
     # Sends them
-    for data, address in reordering:
-        udp_socket.sendto(data, address)
-        sent += 1
+    for package in reordering:
+        send_package(udp_socket, package)
     reordering = []
+
+
+def send_package(udp_socket, package):
+    global sent
+
+    # Sends package with latency
+    latency()
+    data, address = package
+    udp_socket.sendto(data, address)
+    sent += 1
+
+
+def latency():
+    simulated_latency = uniform(latency_min, latency_max)
+    debug_print(f"Simulated latency of {simulated_latency * 1e3 : .2f} ms.")
+    sleep(simulated_latency)
 
 
 def main():
@@ -179,4 +230,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
