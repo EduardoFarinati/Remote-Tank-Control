@@ -50,34 +50,34 @@ default: makedir all
 
 # non-phony targets
 $(TARGET_1): $(OBJ_1) $(SHARED_OBJ)
-	$(CC) $(CCFLAGS) -o $@ $(OBJ_1) $(SHARED_OBJ)
+	$(CC) -o $@ $(OBJ_1) $(SHARED_OBJ) $(CCFLAGS)
 
 $(TARGET_2): $(OBJ_2) $(SHARED_OBJ)
-	$(CC) $(CCFLAGS) -o $@ $(OBJ_2) $(SHARED_OBJ)
+	$(CC) -o $@ $(OBJ_2) $(SHARED_OBJ) $(CCFLAGS) 
 
 $(OBJ_PATH)/%.o: $(SRC_PATH)/%.c*
-	$(CC) $(CCOBJFLAGS) -o $@ $<
+	$(CC) -o $@ $< $(CCOBJFLAGS) 
 
 $(OBJ_PATH)/$(TARGET_1_NAME)/%.o: $(SRC_PATH)/$(TARGET_1_NAME)/%.c*
-	$(CC) $(CCOBJFLAGS) -o $@ $<
+	$(CC) -o $@ $< $(CCOBJFLAGS) 
 
 $(OBJ_PATH)/$(TARGET_2_NAME)/%.o: $(SRC_PATH)/$(TARGET_2_NAME)/%.c*
-	$(CC) $(CCOBJFLAGS) -o $@ $<
+	$(CC) -o $@ $< $(CCOBJFLAGS) 
 
 $(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
-	$(CC) $(CCOBJFLAGS) $(DBGFLAGS) -o $@ $<
+	$(CC) $(DBGFLAGS) -o $@ $< $(CCOBJFLAGS) 
 
 $(DBG_PATH)/$(TARGET_1_NAME)/%.o: $(SRC_PATH)/$(TARGET_1_NAME)/%.c*
-	$(CC) $(CCOBJFLAGS) $(DBGFLAGS) -o $@ $<
+	$(CC) $(DBGFLAGS) -o $@ $< $(CCOBJFLAGS) 
 
 $(DBG_PATH)/$(TARGET_2_NAME)/%.o: $(SRC_PATH)/$(TARGET_2_NAME)/%.c*
-	$(CC) $(CCOBJFLAGS) $(DBGFLAGS) -o $@ $<
+	$(CC) $(DBGFLAGS) -o $@ $< $(CCOBJFLAGS) 
 
 $(TARGET_1_DEBUG): $(OBJ_1_DEBUG) $(SHARED_OBJ_DEBUG)
-	$(CC) $(CCFLAGS) $(DBGFLAGS) $(OBJ_1_DEBUG) $(SHARED_OBJ_DEBUG) -o $@
+	$(CC) $(DBGFLAGS) $(OBJ_1_DEBUG) $(SHARED_OBJ_DEBUG) -o $@ $(CCFLAGS) 
 
 $(TARGET_2_DEBUG): $(OBJ_2_DEBUG) $(SHARED_OBJ_DEBUG)
-	$(CC) $(CCFLAGS) $(DBGFLAGS) $(OBJ_2_DEBUG) $(SHARED_OBJ_DEBUG) -o $@
+	$(CC) $(DBGFLAGS) $(OBJ_2_DEBUG) $(SHARED_OBJ_DEBUG) -o $@ $(CCFLAGS) 
 
 # phony rules
 .PHONY: makedir
