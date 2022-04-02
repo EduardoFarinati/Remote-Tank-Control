@@ -7,7 +7,6 @@
 
 // IP client / server constants
 #define DEFAULT_PORT 9595  // Port for group E := 9E9E
-#define MESSAGE_TIMEOUT_S 50e-3
 #define CORRUPTION_TOLERANCE 4
 
 // Communication constants
@@ -86,7 +85,7 @@ protocol_packet parse_command(char* message);
 
 protocol_packet parse_response(char* message);
 
-int is_packet_done(char* message);
+int has_received_datagram(char* message);
 
 void format_message(char* message, protocol_packet packet);
 

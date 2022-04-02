@@ -4,20 +4,29 @@
 #include "client.h"
 #include "../time.h"
 #include "../run_sync.h"
+#include "../graphics.h"
 #include "../debug.h"
 
 
 void* send_ip_packets();
 void* control_tank_level();
-void* generate_graphics();
+void* insert_tank_data_in_graph();
+void* draw_graph_periodically();
 
 
-int main() {
-    pthread_t ip_thread, control_thread, graphics_thread;
-    int ret1, ret2, ret3;
+int main(int argc, char* argv[]) {
+    cli_arguments arguments;
+    pthread_t ip_thread, control_thread, graph_data_thread, graph_draw_thread;
+    int ret1, ret2, ret3, ret4;
+
+    // Parses cli arguments
+    parse_cli_arguments(&arguments, argc, argv);
+    if(arguments.debug_flag) {
+        set_debug_level(INFO);
+    }
 
     // Creates ip thread to communicate with server
-    ret1 = pthread_create(&ip_thread, NULL, send_ip_packets, NULL);
+    ret1 = pthread_create(&ip_thread, NULL, send_ip_packets, (void*) &arguments);
     if(ret1) {
 	    write_log(CRITICAL,"Error: unable to create ip thread, return code: %d\n", ret1);
 	    exit(EXIT_FAILURE);
@@ -30,10 +39,20 @@ int main() {
 	    exit(EXIT_FAILURE);
     }
     
-    // Creates graphics thread to show current tank level and supposed input valve status
-    ret3 = pthread_create(&graphics_thread, NULL, generate_graphics, NULL);
+    // Opens new graph window
+    new_graph();
+
+    // Creates graph data thread to store current tank level and supposed input valve status
+    ret3 = pthread_create(&graph_data_thread, NULL, insert_tank_data_in_graph, NULL);
     if(ret3) {
-	    write_log(CRITICAL,"Error: unable to create graphics thread, return code: %d\n", ret3);
+	    write_log(CRITICAL,"Error: unable to create graph data thread, return code: %d\n", ret3);
+	    exit(EXIT_FAILURE);
+    }
+
+    // Creates graph draw thread to redraw graph with current stored values
+    ret4 = pthread_create(&graph_draw_thread, NULL, draw_graph_periodically, NULL);
+    if(ret4) {
+	    write_log(CRITICAL,"Error: unable to create graph draw thread, return code: %d\n", ret4);
 	    exit(EXIT_FAILURE);
     }
 
@@ -47,16 +66,22 @@ int main() {
     set_program_running(0);
 
     // Waits for all threads to finish to close the program.
+    pthread_join(ip_thread, NULL);
     pthread_join(control_thread, NULL);
-    pthread_join(graphics_thread, NULL);
+    pthread_join(graph_data_thread, NULL);
+    pthread_join(graph_draw_thread, NULL);
      
     exit(EXIT_SUCCESS);
 }
 
-void* send_ip_packets() {
+void* send_ip_packets(void* args) {
+    int port = ((cli_arguments*) args)->port;
+    char* server_ip_address = ((cli_arguments*) args)->server_ip_address;
+    int server_port = ((cli_arguments*) args)->server_port;
+
     while(get_program_running()) {
-        start_client_socket();
-        set_server_address("127.0.0.1");
+        start_client_socket(port);
+        set_server_address(server_ip_address, server_port);
  
         while(get_program_running()) {
             // Updates tank variables
@@ -83,14 +108,23 @@ void* control_tank_level() {
     return NULL;
 }
 
-void* generate_graphics() {
-    create_graphics_window();
-    sleep_ms(GRAPHICS_SLEEP_MS);
-
+void* insert_tank_data_in_graph() {
     while(get_program_running()) {
-        update_graph();
-        sleep_ms(GRAPHICS_SLEEP_MS);
+        TankState tank = get_tank();
+        update_graph_data(tank.t, tank.level, tank.input, -1);
+
+        sleep_ms(GRAPH_DATA_SLEEP_MS);
     }
+
+    return NULL;
+}
+
+void* draw_graph_periodically() {
+    while(get_program_running()) {
+        draw_graph();
+
+        sleep_ms(GRAPH_DRAW_SLEEP_MS);
+    }   
 
     return NULL;
 }

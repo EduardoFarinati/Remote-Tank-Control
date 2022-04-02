@@ -6,8 +6,11 @@
 #define MAIN_SLEEP_MS 500
 #define SIMULATION_SLEEP_MS 10
 #define IP_SERVER_SLEEP_MS 15
-#define GRAPHICS_SLEEP_MS 50
+#define GRAPH_DATA_SLEEP_MS 50
+#define GRAPH_DRAW_SLEEP_MS 150
 
+// Default port to listen for messages
+#define DEFAULT_PORT 9595  // Port for group E := 9E9E
 
 // Tank state for plant simulation
 typedef struct TankState_t {

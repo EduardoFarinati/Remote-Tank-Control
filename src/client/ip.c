@@ -37,17 +37,27 @@ struct timespec sent_time;
 TankState tank_before;
 
 
-int start_client_socket() {
+int start_client_socket(int port) {
     client_socket = create_socket();
-    if(client_socket && bind_port(client_socket, 9696)) {
-        return 0;
+    if(client_socket) {
+        if (port == ANY_PORT) {
+            return 0;
+        }
+        else {
+            if(bind_port(client_socket, port)) {
+                return 0;
+            }
+            else {
+                return -1;
+            }
+        }
     }
     else {
         return -1;
     }
 }
 
-void set_server_address_p(char* server_ip_address, int server_port) {
+void set_server_address(char* server_ip_address, int server_port) {
     server_address = (struct sockaddr_in) {
         .sin_family = AF_INET,
         .sin_addr.s_addr = inet_addr(server_ip_address),
@@ -58,10 +68,6 @@ void set_server_address_p(char* server_ip_address, int server_port) {
     write_log(CRITICAL, "Server address %s:%d set...\n", server_ip_address, server_port);
 }
 
-void set_server_address(char* server_ip_address) {
-    //set_server_address_p(server_ip_address, DEFAULT_PORT);
-    set_server_address_p(server_ip_address, 9797);
-}
 
 int send_command() {
     char command[BUFFER_LENGTH];
@@ -136,6 +142,9 @@ int check_valid_response() {
     if(response_packet.value == expected_packet.value) {
         if(response_packet.keyword == expected_packet.keyword) {
             return 0;
+        }
+        else {
+            return -1;
         }
     }
     else {
@@ -255,7 +264,7 @@ void check_answer() {
     // Tries to receive the response
     if(receive_message(buffer, client_socket, &server_address) == 0) {
         // Tries parsing message
-        if(is_packet_done(buffer) || (get_time_delta(sent_time) > NO_ANSWER_TIMEOUT)) {
+        if(has_received_datagram(buffer) || (get_time_delta(sent_time) > NO_ANSWER_TIMEOUT)) {
             response_packet = parse_response(buffer);
             waiting_answer = 0;
             treat_answer();

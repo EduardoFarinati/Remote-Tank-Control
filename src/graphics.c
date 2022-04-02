@@ -1,7 +1,45 @@
+#include <SDL/SDL.h>
 #include <stdio.h>
 #include <math.h>
 
 #include "graphics.h"
+
+
+//#define BPP 8
+//typedef Uint8 PixelType;
+//#define BPP 16
+//typedef Uint16 PixelType;
+#define BPP 32
+typedef Uint32 PixelType;
+
+// Graphics struct definition
+typedef struct canvas {
+  SDL_Surface *canvas;
+  int Height; // canvas height
+  int Width;  // canvas width
+  int Xoffset; // X off set, in canvas pixels
+  int Yoffset; // Y off set, in canvas pixels
+  int Xext; // X extra width
+  int Yext; // Y extra height
+  double Xmax;
+  double Ymax;
+  double Xstep; // half a distance between X pixels in 'Xmax' scale
+
+  PixelType *zpixel;
+
+} Tcanvas;
+
+typedef struct dataholder {
+  Tcanvas *canvas;
+  double   Tcurrent;
+  double   Lcurrent;
+  PixelType Lcolor;
+  double   INcurrent;
+  PixelType INcolor;
+  double   OUTcurrent;
+  PixelType OUTcolor;
+
+} Tdataholder;
 
 
 inline void c_pixeldraw(Tcanvas *canvas, int x, int y, PixelType color)
@@ -115,7 +153,7 @@ void datadraw(Tdataholder *data, double time, double level, double inangle, doub
   data->INcurrent = inangle;
   data->OUTcurrent = outangle;
 
-  SDL_Flip(data->canvas->canvas);
+  //SDL_Flip(data->canvas->canvas);
 }
 
 int quit_event() {
@@ -131,10 +169,6 @@ int quit_event() {
   }
 
   return 0;
-}
-
-void quit() {
-  SDL_Quit();
 }
 
 //
@@ -158,4 +192,42 @@ int graphics_main( int argc, const char* argv[] ) {
   while(1) {
     quit_event();
   }
+}
+
+//
+//
+//
+//
+//
+//
+//
+
+#include <pthread.h>
+
+
+// Canvas to draw state variables
+Tdataholder* graph_data;
+pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+void new_graph() {
+	pthread_mutex_lock(&data_mutex);
+  graph_data = datainit(SCREEN_W, SCREEN_H, 55, 110, 45, 0, 0);
+	pthread_mutex_unlock(&data_mutex);
+}
+
+void update_graph_data(double time, double level, double input, double output) {
+  pthread_mutex_lock(&data_mutex);
+  datadraw(graph_data, time, level, input, output);
+  pthread_mutex_unlock(&data_mutex);
+}
+
+void draw_graph() {
+  pthread_mutex_lock(&data_mutex);
+  SDL_Flip(graph_data->canvas->canvas);
+  pthread_mutex_unlock(&data_mutex);
+}
+
+int window_closed() {
+  return quit_event();
 }

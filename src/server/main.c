@@ -5,16 +5,18 @@
 #include "../time.h"
 #include "../run_sync.h"
 #include "../debug.h"
+#include "../graphics.h"
 
 
 void* simulate_plant();
-void* generate_graphics();
 void* receive_ip_packets();
+void* insert_tank_data_in_graph();
+void* draw_graph_periodically();
 
 
 int main() {
-    pthread_t plant_thread, graphics_thread, ip_server_thread;
-    int ret1, ret2, ret3;
+    pthread_t plant_thread, ip_server_thread, graph_data_thread, graph_draw_thread;
+    int ret1, ret2, ret3, ret4;
 
     // Creates plant thread to simulate the tank system
     ret1 = pthread_create(&plant_thread, NULL, simulate_plant, NULL);
@@ -24,19 +26,29 @@ int main() {
 	    exit(EXIT_FAILURE);
     }
     
-    // Creates graphics thread to show current tank level and valve status
-    ret2 = pthread_create(&graphics_thread, NULL, generate_graphics, NULL);
+    // Creates ip server thread to handle control commands to the tank system
+    ret2 = pthread_create(&ip_server_thread, NULL, receive_ip_packets, NULL);
     if(ret2)
     {
-	    write_log(CRITICAL, "Error: unable to create graphics thread, return code: %d\n", ret2);
+	    write_log(CRITICAL, "Error: unable to create ip server thread, return code: %d\n", ret2);
 	    exit(EXIT_FAILURE);
     }
 
-    // Creates ip server thread to handle control commands to the tank system
-    ret3 = pthread_create(&ip_server_thread, NULL, receive_ip_packets, NULL);
+    // Opens new graph window
+    new_graph();
+ 
+    // Creates graph data thread to store current tank level and valve status
+    ret3 = pthread_create(&graph_data_thread, NULL, insert_tank_data_in_graph, NULL);
     if(ret3)
     {
-	    write_log(CRITICAL, "Error: unable to create ip server thread, return code: %d\n", ret3);
+	    write_log(CRITICAL, "Error: unable to create graphics thread, return code: %d\n", ret3);
+	    exit(EXIT_FAILURE);
+    }
+
+    // Creates graph draw thread to redraw graph with current stored values
+    ret4 = pthread_create(&graph_draw_thread, NULL, draw_graph_periodically, NULL);
+    if(ret4) {
+	    write_log(CRITICAL,"Error: unable to create graph draw thread, return code: %d\n", ret4);
 	    exit(EXIT_FAILURE);
     }
 
@@ -51,8 +63,9 @@ int main() {
 
     // Waits for all threads to finish to close the program.
     pthread_join(plant_thread, NULL);
-	pthread_join(graphics_thread, NULL);
 	pthread_join(ip_server_thread, NULL);
+    pthread_join(graph_data_thread, NULL);
+    pthread_join(graph_draw_thread, NULL);
 	 
 	exit(EXIT_SUCCESS);
 }
@@ -65,18 +78,6 @@ void* simulate_plant() {
     while(get_program_running()) {
         tank_time_step();
         sleep_ms(SIMULATION_SLEEP_MS);
-    }
-
-    return NULL;
-}
-
-void* generate_graphics() {
-    create_graphics_window();
-    sleep_ms(GRAPHICS_SLEEP_MS);
-
-    while(get_program_running()) {
-        update_graph();
-        sleep_ms(GRAPHICS_SLEEP_MS);
     }
 
     return NULL;
@@ -101,6 +102,27 @@ void* receive_ip_packets() {
     }
 
     close_server_socket();
+
+    return NULL;
+}
+
+void* insert_tank_data_in_graph() {
+    while(get_program_running()) {
+        TankState tank = get_tank();
+        update_graph_data(tank.t, tank.level, tank.input, tank.output);
+
+        sleep_ms(GRAPH_DATA_SLEEP_MS);
+    }
+
+    return NULL;
+}
+
+void* draw_graph_periodically() {
+    while(get_program_running()) {
+        draw_graph();
+
+        sleep_ms(GRAPH_DRAW_SLEEP_MS);
+    }   
 
     return NULL;
 }

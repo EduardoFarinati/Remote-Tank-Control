@@ -32,7 +32,7 @@ int receive_command() {
     // Tries to receive a message
     if(receive_message(buffer, server_socket, &client_address) == 0) {
         // Tries parsing message
-        if(is_packet_done(buffer)) {
+        if(has_received_datagram(buffer)) {
             packet = parse_command(buffer);
 
             return 0;
@@ -40,6 +40,9 @@ int receive_command() {
         else {
             return -1;
         }
+    }
+    else {
+        return -1;
     }
 }
 
