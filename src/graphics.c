@@ -1,4 +1,5 @@
 #include <SDL/SDL.h>
+#include <stddef.h>
 #include <stdio.h>
 #include <math.h>
 
@@ -209,23 +210,176 @@ int graphics_main( int argc, const char* argv[] ) {
 Tdataholder* graph_data;
 pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+// Defines data queue
+typedef struct graph_data_raw_t {
+  double time;
+  double level;
+  double input;
+  double output;
+} graph_data_raw;
 
+#define MAX_QUEUE 20
+typedef struct data_queue_t {
+  size_t head;
+  size_t tail;
+  graph_data_raw data[MAX_QUEUE];
+} data_queue;
+data_queue queue = {
+  .head = 0,
+  .tail = 0
+};
+pthread_mutex_t queue_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+
+int queue_read(graph_data_raw* data) {
+  pthread_mutex_lock(&queue_mutex);
+ 
+  // Empty queue
+  if(queue.tail == queue.head) {
+    pthread_mutex_unlock(&queue_mutex);
+    return 0;
+  }
+  else {
+    *data = queue.data[queue.tail];
+    queue.tail = (queue.tail + 1) % MAX_QUEUE;
+
+    pthread_mutex_unlock(&queue_mutex);
+    return 1;
+  }
+}
+
+void queue_write(graph_data_raw data) {
+  pthread_mutex_lock(&queue_mutex);
+  queue.data[queue.head] = data;
+  queue.head = (queue.head + 1) % MAX_QUEUE;
+
+  if(queue.head == queue.tail) {
+    queue.tail = (queue.tail + 1) % MAX_QUEUE;
+  }
+
+  pthread_mutex_unlock(&queue_mutex);
+}
+
+void clear_queue() {
+  int i;
+
+  pthread_mutex_lock(&queue_mutex);
+  queue.head = 0;
+  queue.tail = 0;
+  for(i = 0; i < MAX_QUEUE; i++) {
+    queue.data[i] = (graph_data_raw) {
+      .time = 0,
+      .level = 0,
+      .input = 0,
+      .output = 0
+    };
+  } 
+  pthread_mutex_unlock(&queue_mutex);
+}
+
+int _new_graph_flag = 0;
+pthread_mutex_t new_graph_mutex = PTHREAD_MUTEX_INITIALIZER;
+
+void set_recreate_graph() {
+  pthread_mutex_lock(&new_graph_mutex);
+  _new_graph_flag = 1;
+  pthread_mutex_unlock(&new_graph_mutex);
+}
+
+void graph_recreated() {
+  pthread_mutex_lock(&new_graph_mutex);
+  _new_graph_flag = 0;
+  pthread_mutex_unlock(&new_graph_mutex);
+}
+
+int should_recreate_graph() {
+  int new_graph_flag;
+
+  pthread_mutex_lock(&new_graph_mutex);
+  new_graph_flag = _new_graph_flag;
+  pthread_mutex_unlock(&new_graph_mutex);
+
+  return new_graph_flag;
+}
+
+#define WIDTH 55
+#define HEIGHT 110
+double level_current = 45;
+double input_current = 50;
+double output_current = 0;
 void new_graph() {
-	pthread_mutex_lock(&data_mutex);
-  graph_data = datainit(SCREEN_W, SCREEN_H, 55, 110, 45, 0, 0);
-	pthread_mutex_unlock(&data_mutex);
+  graph_data = datainit(
+    SCREEN_W,
+    SCREEN_H,
+    WIDTH,
+    HEIGHT,
+    level_current,
+    input_current,
+    output_current
+  );
+}
+
+void recreate_graph() {
+  // Clears memory and recreates graph
+  pthread_mutex_lock(&data_mutex);
+  free(graph_data->canvas);
+  free(graph_data);
+  new_graph();
+  pthread_mutex_unlock(&data_mutex);
+
+  clear_queue();
+  graph_recreated();
+}
+
+int clear_graph_on_overflow = 1;
+int current_mod = 0;
+void modular_datadraw(Tdataholder *data, double time, double level, double inangle, double outangle) {
+  if(ceil(time) > (current_mod + 1) * WIDTH) {
+    current_mod += 1;
+    if(clear_graph_on_overflow) {
+      level_current = level;
+      input_current = inangle;
+      output_current = outangle;
+      set_recreate_graph();
+    }
+  }
+  else {
+    double mod_time = time - current_mod * WIDTH;
+    datadraw(data, mod_time, level, inangle, outangle);
+  }
 }
 
 void update_graph_data(double time, double level, double input, double output) {
-  pthread_mutex_lock(&data_mutex);
-  datadraw(graph_data, time, level, input, output);
-  pthread_mutex_unlock(&data_mutex);
+  graph_data_raw data;
+
+  if(pthread_mutex_trylock(&data_mutex) == 0) {
+    while(queue_read(&data) != 0) {
+      modular_datadraw(graph_data, data.time, data.level, data.input, data.output);
+    }
+    modular_datadraw(graph_data, time, level, input, output);
+    pthread_mutex_unlock(&data_mutex);
+  }
+  else {
+    data = (graph_data_raw) {
+      .time = time,
+      .level = level,
+      .input = input,
+      .output = output
+    };
+
+    queue_write(data);
+  }
 }
 
 void draw_graph() {
-  pthread_mutex_lock(&data_mutex);
-  SDL_Flip(graph_data->canvas->canvas);
-  pthread_mutex_unlock(&data_mutex);
+  if(!should_recreate_graph()) {
+    pthread_mutex_lock(&data_mutex);
+    SDL_Flip(graph_data->canvas->canvas);
+    pthread_mutex_unlock(&data_mutex);
+  }
+  else {
+    recreate_graph();
+  }
 }
 
 int window_closed() {

@@ -4,6 +4,7 @@
 
 #include "server.h"
 #include "../comm.h"
+#include "../graphics.h"
 
 
 int server_socket;
@@ -87,6 +88,7 @@ void command_action() {
 
         case START:
             start_tank();
+            set_recreate_graph();
             response_packet = (protocol_packet) {
                 .keyword = START_RESPONSE,
                 .value = OK_VALUE

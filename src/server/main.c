@@ -96,9 +96,6 @@ void* simulate_plant() {
     return NULL;
 }
 
-// TODO:
-// Clear dos graficos.
-// Trylock para nao travar a espera de pacotes
 void* receive_ip_packets(void* args) {
     // Waits for the program to start running
     while(!get_program_running()) {

@@ -10,6 +10,7 @@
 #include "../comm.h"
 #include "../time.h"
 #include "../debug.h"
+#include "../graphics.h"
 
 
 int client_socket;
@@ -186,11 +187,12 @@ void treat_answer() {
         switch (update_state) {
             case TESTING_COMM:
                 connection_estabilished();
-                update_state = GETTING_LEVEL;
+                update_state = STARTING_TANK;
                 break;
 
             case STARTING_TANK:
                 reset_time();
+                set_recreate_graph();
                 update_state = GETTING_LEVEL;
                 break;
 
@@ -240,6 +242,7 @@ void treat_answer() {
                 
                 case STARTING_TANK:
                     reset_time();
+                    set_recreate_graph();
                     update_state = GETTING_LEVEL;
                     break;
 
