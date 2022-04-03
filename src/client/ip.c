@@ -216,8 +216,9 @@ void treat_answer() {
     else {
         if(response_packet.keyword == ERROR_RESPONSE) {
             // Packet dropped by server
+            // Try sending again
         }
-        else if(response_packet.keyword == ERROR || !is_packet_similar(buffer, expected_packet) || received_valve_opening_with_wrong_value) {
+        else if(is_packet_similar(buffer, expected_packet) || received_valve_opening_with_wrong_value) {
             // Packet may have been received
             if(update_state == SETTING_INPUT_VALVE) {
                 if(command_packet.keyword == OPEN_VALVE) {
@@ -232,11 +233,9 @@ void treat_answer() {
             }
         }
         else {
-            // Assume OK
+            // Assume may have been OK, adapt state machine
             switch (update_state) {
                 case TESTING_COMM:
-                    connection_estabilished();
-                    update_state = GETTING_LEVEL;
                     break;
                 
                 case STARTING_TANK:

@@ -49,9 +49,9 @@ int is_packet_similar(char* buffer, protocol_packet expected_packet) {
     format_message(expected_buffer, expected_packet);
 
     if(levenshtein_distance(buffer, expected_buffer) <= CORRUPTION_TOLERANCE) {
-        return 0;
+        return 1;
     }
     else {
-        return 1;
+        return 0;
     }
 }
