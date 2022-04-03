@@ -12,7 +12,7 @@ struct sockaddr_in client_address;
 protocol_packet packet;
 
 
-int start_server_socket_p(int port) {
+int start_server_socket(int port) {
     server_socket = create_socket();
     if(server_socket) {
         return bind_port(server_socket, port);
@@ -20,10 +20,6 @@ int start_server_socket_p(int port) {
     else {
         return -1;
     }
-}
-
-int start_server_socket() {
-    return start_server_socket_p(DEFAULT_PORT);
 }
 
 int receive_command() {

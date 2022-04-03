@@ -10,7 +10,10 @@
 #define GRAPH_DRAW_SLEEP_MS 150
 
 // Default port to listen for messages
-#define DEFAULT_PORT 9595  // Port for group E := 9E9E
+typedef struct cli_arguments_t {
+    int port;
+    int debug_flag;
+} cli_arguments;
 
 // Tank state for plant simulation
 typedef struct TankState_t {
@@ -22,6 +25,9 @@ typedef struct TankState_t {
     double t; // state timestamp
 } TankState;
 
+
+// Argument parsing function headers
+void parse_cli_arguments(cli_arguments* arguments, int argc, char* argv[]);
 
 // Tank state function headers
 TankState get_tank();
@@ -42,7 +48,7 @@ int window_closed();
 void close_window();
 
 // IP server function headers
-int start_server_socket();
+int start_server_socket(int port);
 
 int accept_connection();
 

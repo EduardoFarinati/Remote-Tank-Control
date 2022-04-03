@@ -14,9 +14,16 @@ void* insert_tank_data_in_graph();
 void* draw_graph_periodically();
 
 
-int main() {
+int main(int argc, char* argv[]) {
+    cli_arguments arguments;
     pthread_t plant_thread, ip_server_thread, graph_data_thread, graph_draw_thread;
     int ret1, ret2, ret3, ret4;
+
+    // Parses cli arguments
+    parse_cli_arguments(&arguments, argc, argv);
+    if(arguments.debug_flag) {
+        set_debug_level(INFO);
+    }
 
     // Creates plant thread to simulate the tank system
     ret1 = pthread_create(&plant_thread, NULL, simulate_plant, NULL);
@@ -27,7 +34,7 @@ int main() {
     }
     
     // Creates ip server thread to handle control commands to the tank system
-    ret2 = pthread_create(&ip_server_thread, NULL, receive_ip_packets, NULL);
+    ret2 = pthread_create(&ip_server_thread, NULL, receive_ip_packets, (void*) &arguments);
     if(ret2)
     {
 	    write_log(CRITICAL, "Error: unable to create ip server thread, return code: %d\n", ret2);
@@ -84,14 +91,12 @@ void* simulate_plant() {
 }
 
 // TODO:
-// Tratar limites quando pacote de resposta
-// for perdido
-// Modelo simples da planta
 // Clear dos graficos.
 // Trylock para nao travar a espera de pacotes
-// Testar mensagens com bytes corrompidos
-void* receive_ip_packets() {
-    start_server_socket();
+void* receive_ip_packets(void* args) {
+    int port = ((cli_arguments*) args)->port;
+
+    start_server_socket(port);
     sleep_ms(IP_SERVER_SLEEP_MS);
     
     while(get_program_running()) {
