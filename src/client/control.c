@@ -8,7 +8,7 @@
 // PID controller definition
 const double Kp = 3.5;
 const double Ki = 1;
-const double Kd = 0.2;
+const double Kd = 0;
 const double T = CONTROL_SLEEP_MS * 1e-3; // Controller time constant
 
 // PID variables
@@ -42,12 +42,20 @@ int controller_saturation(int u) {
 }
 
 double anti_windup(int e) {
-   // Turns off on large errors
-   if(abs(e) <= 10) {
-      return Ki * T * e;
+   double ideal = Ki * T * e;
+
+   // Smaller on large errors
+   if(abs(e) <= 5) {
+      return ideal;
+   }
+   else if(abs(e) <= 10) {
+      return 0.5 * ideal;
+   }
+   else if(abs(e) <= 15) {
+      return 5e-2 * ideal;
    }
    else {
-      return 0;
+      return 1e-2 * Ki * T * e;
    }
 } 
 
@@ -85,6 +93,20 @@ double get_tank_time_delta() {
    return dt;
 }
 
+const int max_delta = 3;
+int get_delta(int u, int u_p) {
+   int delta = u - u_p;
+
+   if(delta > max_delta) {
+      delta = max_delta;
+   }
+   else if(delta < -max_delta) {
+      delta = -max_delta;
+   }
+
+   return delta;
+}
+
 // Update controller output
 void update_controller() {
    TankState tank;
@@ -95,7 +117,7 @@ void update_controller() {
    // Update output
    int u = controller_output(r, y);
    int u_p = tank.input;
-   tank.delta = u - u_p;
+   tank.delta = get_delta(u, u_p);
 
    // Update time
    tank.t += get_tank_time_delta();
