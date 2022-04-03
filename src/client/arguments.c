@@ -63,6 +63,9 @@ void parse_cli_arguments(cli_arguments* arguments, int argc, char* argv[]) {
         switch(opt) {
             case 'p':
                 arguments->port = atoi(optarg);
+                if(arguments->port <= 0) {
+                    usage(argv[0]);
+                }
                 break;
             case 'a':
                 if(!parse_address(optarg, arguments->server_ip_address, &arguments->server_port)) {
