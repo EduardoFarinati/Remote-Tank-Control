@@ -40,9 +40,6 @@ int main(int argc, char* argv[]) {
 	    exit(EXIT_FAILURE);
     }
     
-    // Opens new graph window
-    new_graph();
-
     // Creates graph data thread to store current tank level and supposed input valve status
     ret3 = pthread_create(&graph_data_thread, NULL, insert_tank_data_in_graph, NULL);
     if(ret3) {
@@ -56,6 +53,10 @@ int main(int argc, char* argv[]) {
 	    write_log(CRITICAL,"Error: unable to create graph draw thread, return code: %d\n", ret4);
 	    exit(EXIT_FAILURE);
     }
+
+    // Opens new graph window
+    new_graph();
+    set_program_running(1);
 
     // Waits for the window to be closed
     while(!window_closed()) {
@@ -76,6 +77,11 @@ int main(int argc, char* argv[]) {
 }
 
 void* send_ip_packets(void* args) {
+    // Waits for the program to start running
+    while(!get_program_running()) {
+        sleep_ms(IP_SLEEP_MS);
+    }
+
     int port = ((cli_arguments*) args)->port;
     char* server_ip_address = ((cli_arguments*) args)->server_ip_address;
     int server_port = ((cli_arguments*) args)->server_port;
@@ -97,6 +103,11 @@ void* send_ip_packets(void* args) {
 }
 
 void* control_tank_level() {
+    // Waits for the program to start running
+    while(!get_program_running()) {
+        sleep_ms(CONTROL_SLEEP_MS);
+    }
+
     // Waits connection
     while(!is_connected()) {
         sleep_ms(CONTROL_SLEEP_MS);
@@ -114,6 +125,11 @@ void* control_tank_level() {
 }
 
 void* insert_tank_data_in_graph() {
+    // Waits for the program to start running
+    while(!get_program_running()) {
+        sleep_ms(GRAPH_DATA_SLEEP_MS);
+    }
+
     while(get_program_running()) {
         TankState tank = get_tank();
         update_graph_data(tank.t, tank.level, tank.input, -1);
@@ -125,6 +141,11 @@ void* insert_tank_data_in_graph() {
 }
 
 void* draw_graph_periodically() {
+    // Waits for the program to start running
+    while(!get_program_running()) {
+        sleep_ms(GRAPH_DRAW_SLEEP_MS);
+    }
+
     while(get_program_running()) {
         draw_graph();
 

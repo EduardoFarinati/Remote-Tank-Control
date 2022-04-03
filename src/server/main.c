@@ -41,9 +41,6 @@ int main(int argc, char* argv[]) {
 	    exit(EXIT_FAILURE);
     }
 
-    // Opens new graph window
-    new_graph();
- 
     // Creates graph data thread to store current tank level and valve status
     ret3 = pthread_create(&graph_data_thread, NULL, insert_tank_data_in_graph, NULL);
     if(ret3)
@@ -58,6 +55,10 @@ int main(int argc, char* argv[]) {
 	    write_log(CRITICAL,"Error: unable to create graph draw thread, return code: %d\n", ret4);
 	    exit(EXIT_FAILURE);
     }
+
+    // Opens new graph window
+    new_graph();
+    set_program_running(1);
 
     // Waits for the window to be closed
     while(!window_closed()) {
@@ -78,6 +79,11 @@ int main(int argc, char* argv[]) {
 }
 
 void* simulate_plant() {
+    // Waits for the program to start running
+    while(!get_program_running()) {
+        sleep_ms(SIMULATION_SLEEP_MS);
+    }
+
     write_log(INFO, "Starting tank...");
     start_tank();
     sleep_ms(SIMULATION_SLEEP_MS);
@@ -94,6 +100,11 @@ void* simulate_plant() {
 // Clear dos graficos.
 // Trylock para nao travar a espera de pacotes
 void* receive_ip_packets(void* args) {
+    // Waits for the program to start running
+    while(!get_program_running()) {
+        sleep_ms(IP_SERVER_SLEEP_MS);
+    }
+
     int port = ((cli_arguments*) args)->port;
 
     start_server_socket(port);
@@ -112,6 +123,11 @@ void* receive_ip_packets(void* args) {
 }
 
 void* insert_tank_data_in_graph() {
+    // Waits for the program to start running
+    while(!get_program_running()) {
+        sleep_ms(GRAPH_DATA_SLEEP_MS);
+    }
+
     while(get_program_running()) {
         TankState tank = get_tank();
         update_graph_data(tank.t, tank.level, tank.input, tank.output);
@@ -123,6 +139,11 @@ void* insert_tank_data_in_graph() {
 }
 
 void* draw_graph_periodically() {
+    // Waits for the program to start running
+    while(!get_program_running()) {
+        sleep_ms(GRAPH_DRAW_SLEEP_MS);
+    }
+
     while(get_program_running()) {
         draw_graph();
 

@@ -1,7 +1,7 @@
 #include <pthread.h>
 
 
-int _program_running = 1;
+int _program_running = 0;
 pthread_mutex_t program_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 
