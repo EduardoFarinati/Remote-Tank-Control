@@ -24,6 +24,9 @@ int main(int argc, char* argv[]) {
     if(arguments.debug_flag) {
         set_debug_level(INFO);
     }
+    if(arguments.dont_clear_graph_flag) {
+        clear_graph_on_overflow = 0;
+    }
 
     // Creates plant thread to simulate the tank system
     ret1 = pthread_create(&plant_thread, NULL, simulate_plant, NULL);
@@ -84,7 +87,7 @@ void* simulate_plant() {
         sleep_ms(SIMULATION_SLEEP_MS);
     }
 
-    write_log(INFO, "Starting tank...");
+    write_log(INFO, "Starting tank...\n");
     start_tank();
     sleep_ms(SIMULATION_SLEEP_MS);
 

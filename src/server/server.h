@@ -13,6 +13,7 @@
 typedef struct cli_arguments_t {
     int port;
     int debug_flag;
+    int dont_clear_graph_flag;
 } cli_arguments;
 
 // Tank state for plant simulation
