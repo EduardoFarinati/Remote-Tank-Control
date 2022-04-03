@@ -6,6 +6,7 @@
 #include <errno.h>
 
 #include "client.h"
+#include "connection_sync.h"
 #include "../comm.h"
 #include "../time.h"
 #include "../debug.h"
@@ -184,6 +185,7 @@ void treat_answer() {
     if(check_valid_response() == 0) {
         switch (update_state) {
             case TESTING_COMM:
+                connection_estabilished();
                 update_state = GETTING_LEVEL;
                 break;
 
@@ -215,7 +217,7 @@ void treat_answer() {
         if(response_packet.keyword == ERROR_RESPONSE) {
             // Packet dropped by server
         }
-        else if(!is_packet_similar(buffer, expected_packet) || received_valve_opening_with_wrong_value) {
+        else if(response_packet.keyword == ERROR || !is_packet_similar(buffer, expected_packet) || received_valve_opening_with_wrong_value) {
             // Packet may have been received
             if(update_state == SETTING_INPUT_VALVE) {
                 if(command_packet.keyword == OPEN_VALVE) {
@@ -233,6 +235,7 @@ void treat_answer() {
             // Assume OK
             switch (update_state) {
                 case TESTING_COMM:
+                    connection_estabilished();
                     update_state = GETTING_LEVEL;
                     break;
                 

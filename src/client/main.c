@@ -2,6 +2,7 @@
 #include <pthread.h>
 
 #include "client.h"
+#include "connection_sync.h"
 #include "../time.h"
 #include "../run_sync.h"
 #include "../graphics.h"
@@ -79,24 +80,28 @@ void* send_ip_packets(void* args) {
     char* server_ip_address = ((cli_arguments*) args)->server_ip_address;
     int server_port = ((cli_arguments*) args)->server_port;
 
-    while(get_program_running()) {
-        start_client_socket(port);
-        set_server_address(server_ip_address, server_port);
- 
-        while(get_program_running()) {
-            // Updates tank variables
-            update_tank();
-            sleep_ms(IP_SLEEP_MS);
-        }
+    // Creates socket and setart communicating
+    start_client_socket(port);
+    set_server_address(server_ip_address, server_port);
 
-        // Closes connection and tries again
-        close_client_socket();
+    while(get_program_running()) {
+        // Updates tank variables
+        update_tank();
+        sleep_ms(IP_SLEEP_MS);
     }
+
+    // Closes connection and tries again
+    close_client_socket();
 
     return NULL;
 }
 
 void* control_tank_level() {
+    // Waits connection
+    while(!is_connected()) {
+        sleep_ms(CONTROL_SLEEP_MS);
+    }
+
     reset_time();
     sleep_ms(CONTROL_SLEEP_MS);
 
