@@ -1,3 +1,4 @@
+#include <stdlib.h>
 #include <math.h>
 
 #include "client.h"
@@ -6,8 +7,8 @@
 
 // PID controller definition
 const double Kp = 3.5;
-const double Ki = 0.2;
-const double Kd = 0;
+const double Ki = 1;
+const double Kd = 0.2;
 const double T = CONTROL_SLEEP_MS * 1e-3; // Controller time constant
 
 // PID variables
@@ -28,14 +29,27 @@ struct timespec time_before;
 
 
 // Maintains controller between 0 and 100
-void controller_saturation(int* u) {
-   if(*u > max_u) {
-      *u = max_u;
+int controller_saturation(int u) {
+   if(u > max_u) {
+      return max_u;
    }
-   else if(*u < min_u) {
-      *u = min_u;
+   else if(u < min_u) {
+      return min_u;
+   }
+   else {
+      return u;
    }
 }
+
+double anti_windup(int e) {
+   // Turns off on large errors
+   if(abs(e) <= 10) {
+      return Ki * T * e;
+   }
+   else {
+      return 0;
+   }
+} 
 
 // Discrete PID controller calculation
 int controller_output(int r, int y) {
@@ -43,13 +57,13 @@ int controller_output(int r, int y) {
    int e = r - y;
 
    P = Kp * e;
-   I += Ki * T * e;
+   I += anti_windup(e);
    D = Kd * ((double) (e - e_p)) / T;
 
    u = round(P + I + D);
 
    // Controller saturation
-   controller_saturation(&u);
+   u = controller_saturation(u);
 
    // Past error set
    e_p = e;
