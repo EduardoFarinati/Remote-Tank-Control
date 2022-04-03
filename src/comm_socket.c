@@ -81,6 +81,12 @@ int receive_message(char* message, int socket_id, struct sockaddr_in* from_addre
         write_log(INFO, "Received message from socket %d: \n", socket_id);
         print_received_bytes(message, count);
 
+        // Clear socket if there's still any data
+        char dummy[BUFFER_LENGTH];
+        while(count > 0) {
+            count = recvfrom(socket_id, dummy, BUFFER_LENGTH, 0, (struct sockaddr *) from_address, &to_address_len);
+        }
+
         return 0;
     }
     else {
