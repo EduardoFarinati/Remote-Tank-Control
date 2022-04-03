@@ -20,6 +20,7 @@ typedef struct cli_arguments_t {
     char server_ip_address[MAX_IP_ADDRESS_SIZE+1];
     int server_port;
     int debug_flag;
+    int dont_clear_graph_flag;
 } cli_arguments;
 
 // Tank state for plant simulation
