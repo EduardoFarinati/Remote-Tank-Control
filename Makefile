@@ -1,6 +1,6 @@
 # tool macros
 CC ?= gcc
-CCFLAGS := -lSDL -lm -pthread -std=gnu89
+CCFLAGS := -lSDL -lm -pthread -lrt -std=gnu89
 DBGFLAGS := -g
 CCOBJFLAGS := $(CCFLAGS) -c
 
@@ -55,22 +55,22 @@ $(TARGET_1): $(OBJ_1) $(SHARED_OBJ)
 $(TARGET_2): $(OBJ_2) $(SHARED_OBJ)
 	$(CC) -o $@ $(OBJ_2) $(SHARED_OBJ) $(CCFLAGS) 
 
-$(OBJ_PATH)/%.o: $(SRC_PATH)/%.c*
+$(OBJ_PATH)/%.o: $(SRC_PATH)/%.c
 	$(CC) -o $@ $< $(CCOBJFLAGS) 
 
-$(OBJ_PATH)/$(TARGET_1_NAME)/%.o: $(SRC_PATH)/$(TARGET_1_NAME)/%.c*
+$(OBJ_PATH)/$(TARGET_1_NAME)/%.o: $(SRC_PATH)/$(TARGET_1_NAME)/%.c
 	$(CC) -o $@ $< $(CCOBJFLAGS) 
 
-$(OBJ_PATH)/$(TARGET_2_NAME)/%.o: $(SRC_PATH)/$(TARGET_2_NAME)/%.c*
+$(OBJ_PATH)/$(TARGET_2_NAME)/%.o: $(SRC_PATH)/$(TARGET_2_NAME)/%.c
 	$(CC) -o $@ $< $(CCOBJFLAGS) 
 
-$(DBG_PATH)/%.o: $(SRC_PATH)/%.c*
+$(DBG_PATH)/%.o: $(SRC_PATH)/%.c
 	$(CC) $(DBGFLAGS) -o $@ $< $(CCOBJFLAGS) 
 
-$(DBG_PATH)/$(TARGET_1_NAME)/%.o: $(SRC_PATH)/$(TARGET_1_NAME)/%.c*
+$(DBG_PATH)/$(TARGET_1_NAME)/%.o: $(SRC_PATH)/$(TARGET_1_NAME)/%.c
 	$(CC) $(DBGFLAGS) -o $@ $< $(CCOBJFLAGS) 
 
-$(DBG_PATH)/$(TARGET_2_NAME)/%.o: $(SRC_PATH)/$(TARGET_2_NAME)/%.c*
+$(DBG_PATH)/$(TARGET_2_NAME)/%.o: $(SRC_PATH)/$(TARGET_2_NAME)/%.c
 	$(CC) $(DBGFLAGS) -o $@ $< $(CCOBJFLAGS) 
 
 $(TARGET_1_DEBUG): $(OBJ_1_DEBUG) $(SHARED_OBJ_DEBUG)
