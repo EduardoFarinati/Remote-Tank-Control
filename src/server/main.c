@@ -149,6 +149,8 @@ void* draw_graph_periodically() {
 
         sleep_ms(GRAPH_DRAW_SLEEP_MS);
     }   
+    cleanup_sdl();
+
 
     return NULL;
 }

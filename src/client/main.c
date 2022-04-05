@@ -112,16 +112,18 @@ void* control_tank_level() {
     }
 
     // Waits connection
-    while(!is_connected()) {
+    while(!is_connected() && get_program_running()) {
         sleep_ms(CONTROL_SLEEP_MS);
     }
 
-    reset_time();
-    sleep_ms(CONTROL_SLEEP_MS);
-
-    while(get_program_running()) {
-        update_controller();
+    if(get_program_running()) {
+        reset_time();
         sleep_ms(CONTROL_SLEEP_MS);
+
+        while(get_program_running()) {
+            update_controller();
+            sleep_ms(CONTROL_SLEEP_MS);
+        }
     }
 
     return NULL;
@@ -154,6 +156,7 @@ void* draw_graph_periodically() {
 
         sleep_ms(GRAPH_DRAW_SLEEP_MS);
     }   
+    cleanup_sdl();
 
     return NULL;
 }

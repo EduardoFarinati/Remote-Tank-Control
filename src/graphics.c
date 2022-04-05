@@ -164,7 +164,6 @@ int quit_event() {
     if(event.type == SDL_QUIT) { 
       // close files, etc...
 
-      SDL_Quit();
       return 1;
     }
   }
@@ -384,4 +383,8 @@ void draw_graph() {
 
 int window_closed() {
   return quit_event();
+}
+
+void cleanup_sdl() {
+  SDL_Quit();
 }

@@ -19,5 +19,7 @@ void draw_graph();
 
 int window_closed();
 
+void cleanup_sdl();
+
 
 #endif
