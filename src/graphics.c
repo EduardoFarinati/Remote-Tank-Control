@@ -349,6 +349,11 @@ void recreate_graph() {
 int clear_graph_on_overflow = 1;
 int current_mod = 0;
 void modular_datadraw(Tdataholder *data, double time, double level, double inangle, double outangle) {
+  // Limit level, inangle and angle to 0-105 levels
+  level = fmod(level, 105);
+  inangle = fmod(inangle, 105);
+  outangle = fmod(outangle, 105);
+
   if(ceil(time) > (current_mod + 1) * WIDTH) {
     current_mod += 1;
     if(clear_graph_on_overflow) {
