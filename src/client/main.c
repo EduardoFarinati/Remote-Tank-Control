@@ -28,6 +28,9 @@ int main(int argc, char* argv[]) {
     if(arguments.dont_clear_graph_flag) {
         clear_graph_on_overflow = 0;
     }
+    if(arguments.no_restart_server_flag) {
+        restart_server_flag = 0;
+    }
 
     // Creates ip thread to communicate with server
     ret1 = pthread_create(&ip_thread, NULL, send_ip_packets, (void*) &arguments);

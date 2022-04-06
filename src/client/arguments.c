@@ -14,7 +14,7 @@
 
 
 void usage(char* program_path) {
-    write_log(CRITICAL, "Usage: %s [-p port][-a server_address:server_port][-d][-g]\n", basename(program_path));
+    write_log(CRITICAL, "Usage: %s [-p port][-a server_address:server_port][-d][-g][-n]\n", basename(program_path));
     exit(EXIT_FAILURE);
 }
 
@@ -55,12 +55,13 @@ void parse_cli_arguments(cli_arguments* arguments, int argc, char* argv[]) {
         .server_ip_address = DEFAULT_SERVER_IP_ADDRESS,
         .server_port = DEFAULT_SERVER_PORT,
         .debug_flag = 0,
-        .dont_clear_graph_flag = 0
+        .dont_clear_graph_flag = 0,
+        .no_restart_server_flag = 0
     };
     int opt;
 
     // Loops over optional arguments
-    while((opt = getopt(argc, argv, "p:a:dg")) != -1) {
+    while((opt = getopt(argc, argv, "p:a:dgn")) != -1) {
         switch(opt) {
             case 'p':
                 arguments->port = atoi(optarg);
@@ -78,6 +79,9 @@ void parse_cli_arguments(cli_arguments* arguments, int argc, char* argv[]) {
                 break;
             case 'g':
                 arguments->dont_clear_graph_flag = 1;
+                break;
+            case 'n':
+                arguments->no_restart_server_flag = 1;
                 break;
             default:
                 usage(argv[0]);

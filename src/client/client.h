@@ -21,6 +21,7 @@ typedef struct cli_arguments_t {
     int server_port;
     int debug_flag;
     int dont_clear_graph_flag;
+    int no_restart_server_flag;
 } cli_arguments;
 
 // Tank state for plant simulation
@@ -31,6 +32,9 @@ typedef struct TankState_t {
     int max; // maximum outflux
     double t; // state timestamp
 } TankState;
+
+// Flag for restarting server
+extern int restart_server_flag;
 
 
 // Argument parsing function headers

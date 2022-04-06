@@ -23,6 +23,8 @@ int waiting_answer;
 
 int received_valve_opening_with_wrong_value = 0;
 
+int restart_server_flag = 1;
+
 typedef enum tank_update_state_t {
     TESTING_COMM,
     STARTING_TANK,
@@ -187,7 +189,12 @@ void treat_answer() {
         switch (update_state) {
             case TESTING_COMM:
                 connection_estabilished();
-                update_state = STARTING_TANK;
+                if(restart_server_flag) {
+                    update_state = STARTING_TANK;
+                }
+                else {
+                    update_state = GETTING_LEVEL;
+                }
                 break;
 
             case STARTING_TANK:
