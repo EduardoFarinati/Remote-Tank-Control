@@ -4,6 +4,7 @@
 #include <math.h>
 
 #include "graphics.h"
+#include "debug.h"
 
 
 //#define BPP 8
@@ -207,7 +208,7 @@ int graphics_main( int argc, const char* argv[] ) {
 
 // Canvas to draw state variables
 Tdataholder* graph_data;
-pthread_mutex_t data_mutex = PTHREAD_MUTEX_INITIALIZER;
+pthread_mutex_t sdl_mutex = PTHREAD_MUTEX_INITIALIZER;
 
 // Defines data queue
 typedef struct graph_data_raw_t {
@@ -217,7 +218,7 @@ typedef struct graph_data_raw_t {
   double output;
 } graph_data_raw;
 
-#define MAX_QUEUE 20
+#define MAX_QUEUE 100
 typedef struct data_queue_t {
   size_t head;
   size_t tail;
@@ -253,6 +254,7 @@ void queue_write(graph_data_raw data) {
   queue.head = (queue.head + 1) % MAX_QUEUE;
 
   if(queue.head == queue.tail) {
+    write_log(FAILURE, "Data queue overrun, erasing old data...");
     queue.tail = (queue.tail + 1) % MAX_QUEUE;
   }
 
@@ -279,13 +281,22 @@ void clear_queue() {
 int _new_graph_flag = 0;
 pthread_mutex_t new_graph_mutex = PTHREAD_MUTEX_INITIALIZER;
 
+void set_clear_graph() {
+  pthread_mutex_lock(&new_graph_mutex);
+  _new_graph_flag = 2;
+  pthread_mutex_unlock(&new_graph_mutex);
+}
+
 void set_recreate_graph() {
+  write_log(INFO, "Setting recreate graph flag...\n");
+
   pthread_mutex_lock(&new_graph_mutex);
   _new_graph_flag = 1;
   pthread_mutex_unlock(&new_graph_mutex);
 }
 
 void graph_recreated() {
+  write_log(INFO, "Graph recreated!\n");
   pthread_mutex_lock(&new_graph_mutex);
   _new_graph_flag = 0;
   pthread_mutex_unlock(&new_graph_mutex);
@@ -318,16 +329,21 @@ void new_graph() {
   );
 }
 
-void recreate_graph() {
-  // Clears memory and recreates graph
-  pthread_mutex_lock(&data_mutex);
+void clear_graph() {
+  // Clears memory and graph
+  pthread_mutex_lock(&sdl_mutex);
   free(graph_data->canvas);
   free(graph_data);
   new_graph();
-  pthread_mutex_unlock(&data_mutex);
+  pthread_mutex_unlock(&sdl_mutex);
 
-  clear_queue();
   graph_recreated();
+}
+
+void recreate_graph() {
+  // Clears memory and recreates graph
+  clear_graph();
+  clear_queue();
 }
 
 int clear_graph_on_overflow = 1;
@@ -339,7 +355,7 @@ void modular_datadraw(Tdataholder *data, double time, double level, double inang
       level_current = level;
       input_current = inangle;
       output_current = outangle;
-      set_recreate_graph();
+      set_clear_graph();
     }
   }
   else {
@@ -351,12 +367,12 @@ void modular_datadraw(Tdataholder *data, double time, double level, double inang
 void update_graph_data(double time, double level, double input, double output) {
   graph_data_raw data;
 
-  if(pthread_mutex_trylock(&data_mutex) == 0) {
+  if(pthread_mutex_trylock(&sdl_mutex) == 0) {
     while(queue_read(&data) != 0) {
       modular_datadraw(graph_data, data.time, data.level, data.input, data.output);
     }
     modular_datadraw(graph_data, time, level, input, output);
-    pthread_mutex_unlock(&data_mutex);
+    pthread_mutex_unlock(&sdl_mutex);
   }
   else {
     data = (graph_data_raw) {
@@ -366,25 +382,41 @@ void update_graph_data(double time, double level, double input, double output) {
       .output = output
     };
 
+    write_log(INFO, "SDL was in use, saving data to queue.\n");
     queue_write(data);
   }
 }
 
 void draw_graph() {
-  if(!should_recreate_graph()) {
-    pthread_mutex_lock(&data_mutex);
+  int recreate_graph_flag = should_recreate_graph();
+
+  if(!recreate_graph_flag) {
+    pthread_mutex_lock(&sdl_mutex);
     SDL_Flip(graph_data->canvas->canvas);
-    pthread_mutex_unlock(&data_mutex);
+    pthread_mutex_unlock(&sdl_mutex);
   }
   else {
-    recreate_graph();
+    if(recreate_graph_flag == 1) {
+      recreate_graph();
+    }
+    else if(recreate_graph_flag == 2) {
+      clear_graph();
+    }
   }
 }
 
 int window_closed() {
-  return quit_event();
+  int closed;
+
+  pthread_mutex_lock(&sdl_mutex);
+  closed = quit_event();
+  pthread_mutex_unlock(&sdl_mutex);
+
+  return closed;
 }
 
 void cleanup_sdl() {
+  pthread_mutex_lock(&sdl_mutex);
   SDL_Quit();
+  pthread_mutex_unlock(&sdl_mutex);
 }
