@@ -14,7 +14,7 @@
 
 
 void usage(char* program_path) {
-    write_log(CRITICAL, "Usage: %s [-p port][-a server_address:server_port][-d][-g][-n]\n", basename(program_path));
+    write_log(CRITICAL, "Usage: %s server_address server_port [-d][-g][-n]\n", basename(program_path));
     exit(EXIT_FAILURE);
 }
 
@@ -60,6 +60,7 @@ void parse_cli_arguments(cli_arguments* arguments, int argc, char* argv[]) {
     };
     int opt;
 
+
     // Loops over optional arguments
     while((opt = getopt(argc, argv, "p:a:dgn")) != -1) {
         switch(opt) {
@@ -87,5 +88,17 @@ void parse_cli_arguments(cli_arguments* arguments, int argc, char* argv[]) {
                 usage(argv[0]);
                 break;
         }
+    }
+    // Required arguments
+    if(optind < argc) {
+        strcpy(arguments->server_ip_address, argv[optind]);
+        arguments->server_port = atoi(argv[optind + 1]);
+
+        if(arguments->server_port <= 0) {
+            usage(argv[0]);
+        }
+    }
+    else {
+        usage(argv[0]);
     }
 }

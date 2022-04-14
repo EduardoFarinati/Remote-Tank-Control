@@ -9,7 +9,7 @@
 
 
 void usage(char* program_path) {
-    write_log(CRITICAL, "Usage: %s [-p port][-d][-g]\n", basename(program_path));
+    write_log(CRITICAL, "Usage: %s port [-d][-g]\n", basename(program_path));
     exit(EXIT_FAILURE);
 }
 
@@ -40,5 +40,16 @@ void parse_cli_arguments(cli_arguments* arguments, int argc, char* argv[]) {
                 usage(argv[0]);
                 break;
         }
+    }
+    // Required arguments
+    if(optind < argc) {
+        arguments->port = atoi(argv[optind]);
+
+        if(arguments->port <= 0) {
+            usage(argv[0]);
+        }
+    }
+    else {
+        usage(argv[0]);
     }
 }
